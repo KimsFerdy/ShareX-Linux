@@ -1,3 +1,52 @@
+# ShareX for Linux
+
+> **Unofficial Linux port of [ShareX](https://github.com/ShareX/ShareX).** This fork is not affiliated with or supported by
+> the ShareX Team. Please report Linux issues [here](https://github.com/KimsFerdy/ShareX-Linux/issues), not upstream.
+
+This fork runs ShareX natively on Linux X11 desktops. Windows code paths are unchanged, and the fork follows upstream
+ShareX so new features arrive here too. It is developed and tested on Linux Mint 22 with Cinnamon.
+
+## Install
+
+Download the latest package from [Releases](https://github.com/KimsFerdy/ShareX-Linux/releases), then:
+
+```sh
+sudo apt install ./sharex_<version>_amd64.deb
+```
+
+The package includes everything ShareX needs, .NET too. Run `sharex` or open ShareX from the application menu.
+For other distributions, extract the `.tar.gz` and run `ShareX` in it.
+
+Optional extras, installed by `apt` as recommended packages:
+
+- `ffmpeg` for screen and GIF recording and video tools
+- `mpv` for the video player and trimmer
+- `tesseract-ocr` and its language data for OCR
+
+## What works
+
+Hotkeys, the tray menu, fullscreen, window and region capture with window snapping, screen and GIF recording, the image
+editor, history, run at login, and the tools, including the color pickers, ruler, mouse highlighter,
+scrolling capture, inspect window, borderless window, video player and trimmer.
+
+## Not yet supported
+
+- Wayland sessions (X11 only for now)
+- Saved uploader logins, which still use Windows encryption
+- Printing
+- File type associations and browser extension integration
+
+## Building
+
+Requires the .NET 10 SDK.
+
+```sh
+dotnet build ShareX/ShareX.csproj -p:Platform=x64
+ShareX.Setup/Linux/build-packages.sh   # .deb and .tar.gz in ShareX.Setup/Output
+```
+
+---
+
 <p align="center"><a href="https://getsharex.com"><img src="https://getsharex.com/img/ShareX_Banner.png" alt="ShareX Banner"/></a></p>
 <h3 align="center">Screen capture, file sharing and productivity tool</h3>
 <br>
