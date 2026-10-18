@@ -64,5 +64,5 @@ public sealed class DesktopScreen
     });
 
     public static DesktopScreen FromHandle(IntPtr handle) =>
-        OperatingSystem.IsWindows() ? FromRectangle(NativeMethods.GetWindowRect(handle)) : PrimaryScreen;
+        FromRectangle(OperatingSystem.IsWindows() ? NativeMethods.GetWindowRect(handle) : X11Desktop.GetWindowRectangle(handle));
 }

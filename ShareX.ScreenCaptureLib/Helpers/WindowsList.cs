@@ -50,8 +50,20 @@ namespace ShareX.ScreenCaptureLib
         public List<WindowInfo> GetWindowsList()
         {
             windows = new List<WindowInfo>();
-            EnumWindowsProc ewp = EvalWindows;
-            NativeMethods.EnumWindows(ewp, IntPtr.Zero);
+
+            if (OperatingSystem.IsWindows())
+            {
+                EnumWindowsProc ewp = EvalWindows;
+                NativeMethods.EnumWindows(ewp, IntPtr.Zero);
+            }
+            else
+            {
+                foreach (IntPtr handle in X11Desktop.GetWindowsTopmostFirst())
+                {
+                    EvalWindows(handle, IntPtr.Zero);
+                }
+            }
+
             return windows;
         }
 
@@ -65,7 +77,7 @@ namespace ShareX.ScreenCaptureLib
         private bool IsValidWindow(WindowInfo window)
         {
             return window != null && window.IsVisible && !window.IsCloaked && !string.IsNullOrEmpty(window.Text) &&
-                IsClassNameAllowed(window) && window.Rectangle.IsValid();
+                IsClassNameAllowed(window) && !window.IsDesktop && window.Rectangle.IsValid();
         }
 
         private bool IsClassNameAllowed(WindowInfo window)

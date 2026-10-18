@@ -149,6 +149,93 @@ internal static unsafe partial class XcbNative
     [LibraryImport(LibXcb, EntryPoint = "xcb_get_keyboard_mapping_keysyms_length")]
     public static partial int GetKeyboardMappingKeysymsLength(byte* reply);
 
+    private const string LibXcbXfixes = "libxcb-xfixes.so.0";
+
+    public const byte ImageFormatZPixmap = 2;
+    public const byte MapStateViewable = 2;
+    public const byte ClientMessage = 33;
+    public const uint AnyPropertyType = 0;
+    public const uint EventMaskSubstructureNotify = 1 << 19;
+    public const uint EventMaskSubstructureRedirect = 1 << 20;
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_intern_atom")]
+    public static partial Cookie InternAtom(IntPtr connection, byte onlyIfExists, ushort nameLength, byte* name);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_intern_atom_reply")]
+    public static partial byte* InternAtomReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_property")]
+    public static partial Cookie GetProperty(IntPtr connection, byte delete, uint window, uint property, uint type,
+        uint longOffset, uint longLength);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_property_reply")]
+    public static partial byte* GetPropertyReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_property_value")]
+    public static partial byte* GetPropertyValue(byte* reply);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_property_value_length")]
+    public static partial int GetPropertyValueLength(byte* reply);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_geometry")]
+    public static partial Cookie GetGeometry(IntPtr connection, uint drawable);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_geometry_reply")]
+    public static partial byte* GetGeometryReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_translate_coordinates")]
+    public static partial Cookie TranslateCoordinates(IntPtr connection, uint sourceWindow, uint destinationWindow, short x, short y);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_translate_coordinates_reply")]
+    public static partial byte* TranslateCoordinatesReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_window_attributes")]
+    public static partial Cookie GetWindowAttributes(IntPtr connection, uint window);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_window_attributes_reply")]
+    public static partial byte* GetWindowAttributesReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_query_pointer")]
+    public static partial Cookie QueryPointer(IntPtr connection, uint window);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_query_pointer_reply")]
+    public static partial byte* QueryPointerReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_warp_pointer")]
+    public static partial Cookie WarpPointer(IntPtr connection, uint sourceWindow, uint destinationWindow, short sourceX, short sourceY,
+        ushort sourceWidth, ushort sourceHeight, short destinationX, short destinationY);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_send_event")]
+    public static partial Cookie SendEvent(IntPtr connection, byte propagate, uint destination, uint eventMask, byte* evt);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_image")]
+    public static partial Cookie GetImage(IntPtr connection, byte format, uint drawable, short x, short y, ushort width, ushort height,
+        uint planeMask);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_image_reply")]
+    public static partial byte* GetImageReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_image_data")]
+    public static partial byte* GetImageData(byte* reply);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_get_image_data_length")]
+    public static partial int GetImageDataLength(byte* reply);
+
+    [LibraryImport(LibXcbXfixes, EntryPoint = "xcb_xfixes_query_version")]
+    public static partial Cookie XfixesQueryVersion(IntPtr connection, uint majorVersion, uint minorVersion);
+
+    [LibraryImport(LibXcbXfixes, EntryPoint = "xcb_xfixes_query_version_reply")]
+    public static partial byte* XfixesQueryVersionReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcbXfixes, EntryPoint = "xcb_xfixes_get_cursor_image")]
+    public static partial Cookie XfixesGetCursorImage(IntPtr connection);
+
+    [LibraryImport(LibXcbXfixes, EntryPoint = "xcb_xfixes_get_cursor_image_reply")]
+    public static partial byte* XfixesGetCursorImageReply(IntPtr connection, Cookie cookie, GenericError** error);
+
+    [LibraryImport(LibXcbXfixes, EntryPoint = "xcb_xfixes_get_cursor_image_cursor_image")]
+    public static partial uint* XfixesGetCursorImageData(byte* reply);
+
     [LibraryImport(LibC, EntryPoint = "free")]
     public static partial void Free(void* pointer);
 

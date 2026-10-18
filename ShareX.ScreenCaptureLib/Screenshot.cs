@@ -66,7 +66,7 @@ namespace ShareX.ScreenCaptureLib
 
                 if (CaptureClientArea)
                 {
-                    rect = NativeMethods.GetClientRect(handle);
+                    rect = CaptureHelpers.GetClientRectangle(handle);
                 }
                 else
                 {
@@ -77,7 +77,7 @@ namespace ShareX.ScreenCaptureLib
 
                 try
                 {
-                    if (AutoHideTaskbar)
+                    if (AutoHideTaskbar && OperatingSystem.IsWindows())
                     {
                         isTaskbarHide = NativeMethods.SetTaskbarVisibilityIfIntersect(false, rect);
                     }
@@ -98,7 +98,7 @@ namespace ShareX.ScreenCaptureLib
 
         public Bitmap CaptureActiveWindow()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = CaptureHelpers.GetForegroundWindow();
 
             return CaptureWindow(handle);
         }
@@ -112,6 +112,11 @@ namespace ShareX.ScreenCaptureLib
 
         private Bitmap CaptureRectangleNative(Rectangle rect, bool captureCursor = false)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return X11Desktop.CaptureRectangle(rect, captureCursor);
+            }
+
             IntPtr handle = NativeMethods.GetDesktopWindow();
             return CaptureRectangleNative(handle, rect, captureCursor);
         }

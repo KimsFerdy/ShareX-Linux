@@ -64,7 +64,21 @@ namespace ShareX.ScreenCaptureLib
                     return CheckHandle(hWnd, null);
                 }
 
-                NativeMethods.EnumWindows(EvalWindow, IntPtr.Zero);
+                if (OperatingSystem.IsWindows())
+                {
+                    NativeMethods.EnumWindows(EvalWindow, IntPtr.Zero);
+                }
+                else
+                {
+                    // X11 toolkits draw their controls inside the top-level window, so there are no child windows to list.
+                    foreach (IntPtr handle in X11Desktop.GetWindowsTopmostFirst())
+                    {
+                        if (!CheckHandle(handle, null))
+                        {
+                            break;
+                        }
+                    }
+                }
             }
             catch
             {
@@ -137,7 +151,7 @@ namespace ShareX.ScreenCaptureLib
                     return true;
                 }
 
-                WindowStyles exStyle = windowInfo.ExStyle;
+                WindowStyles exStyle = OperatingSystem.IsWindows() ? windowInfo.ExStyle : 0;
 
                 // Skip non-activatable tool windows (tiling manager overlays, system
                 // auxiliaries, etc.). These are never the "real" application the user
@@ -168,7 +182,7 @@ namespace ShareX.ScreenCaptureLib
                 return true;
             }
 
-            if (IncludeChildWindows && !parentHandles.Contains(handle))
+            if (IncludeChildWindows && OperatingSystem.IsWindows() && !parentHandles.Contains(handle))
             {
                 parentHandles.Add(handle);
 
@@ -182,7 +196,7 @@ namespace ShareX.ScreenCaptureLib
 
             if (isWindow)
             {
-                Rectangle clientRect = NativeMethods.GetClientRect(handle);
+                Rectangle clientRect = CaptureHelpers.GetClientRectangle(handle);
 
                 if (clientRect.IsValid() && clientRect != simpleWindowInfo.Rectangle)
                 {

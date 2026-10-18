@@ -90,6 +90,11 @@ namespace ShareX.HelpersLib
 
         public static Point GetCursorPosition()
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return X11Desktop.GetCursorPosition();
+            }
+
             if (NativeMethods.GetCursorPos(out POINT point))
             {
                 return (Point)point;
@@ -100,6 +105,12 @@ namespace ShareX.HelpersLib
 
         public static void SetCursorPosition(int x, int y)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                X11Desktop.SetCursorPosition(x, y);
+                return;
+            }
+
             NativeMethods.SetCursorPos(x, y);
         }
 
@@ -115,6 +126,11 @@ namespace ShareX.HelpersLib
 
         public static Color GetPixelColor(int x, int y)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return X11Desktop.GetPixelColor(x, y);
+            }
+
             IntPtr hdc = NativeMethods.GetDC(IntPtr.Zero);
             uint pixel = NativeMethods.GetPixel(hdc, x, y);
             NativeMethods.ReleaseDC(IntPtr.Zero, hdc);
@@ -289,6 +305,11 @@ namespace ShareX.HelpersLib
 
         public static Rectangle GetWindowRectangle(IntPtr handle)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return X11Desktop.GetWindowRectangle(handle);
+            }
+
             Rectangle rect = Rectangle.Empty;
 
             if (NativeMethods.IsDWMEnabled() && NativeMethods.GetExtendedFrameBounds(handle, out Rectangle tempRect))
@@ -309,29 +330,37 @@ namespace ShareX.HelpersLib
             return rect;
         }
 
+        public static IntPtr GetForegroundWindow()
+        {
+            return OperatingSystem.IsWindows() ? NativeMethods.GetForegroundWindow() : X11Desktop.GetActiveWindow();
+        }
+
+        public static Rectangle GetClientRectangle(IntPtr handle)
+        {
+            return OperatingSystem.IsWindows() ? NativeMethods.GetClientRect(handle) : X11Desktop.GetClientRectangle(handle);
+        }
+
         public static Rectangle GetActiveWindowRectangle()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = GetForegroundWindow();
             return GetWindowRectangle(handle);
         }
 
         public static Rectangle GetActiveWindowClientRectangle()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
-            return NativeMethods.GetClientRect(handle);
+            IntPtr handle = GetForegroundWindow();
+            return GetClientRectangle(handle);
         }
 
         public static bool IsActiveWindowFullscreen()
         {
-            IntPtr handle = NativeMethods.GetForegroundWindow();
+            IntPtr handle = GetForegroundWindow();
 
             if (handle.ToInt32() > 0)
             {
                 WindowInfo windowInfo = new WindowInfo(handle);
-                string className = windowInfo.ClassName;
-                string[] ignoreList = new string[] { "Progman", "WorkerW" };
 
-                if (ignoreList.All(ignore => !className.Equals(ignore, StringComparison.OrdinalIgnoreCase)))
+                if (!windowInfo.IsDesktop)
                 {
                     Rectangle windowRectangle = windowInfo.Rectangle;
                     Rectangle monitorRectangle = DesktopScreen.FromRectangle(windowRectangle).Bounds;

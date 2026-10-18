@@ -35,11 +35,11 @@ namespace ShareX.HelpersLib
 
         public bool IsHandleCreated => Handle != IntPtr.Zero;
 
-        public string Text => NativeMethods.GetWindowText(Handle);
+        public string Text => OperatingSystem.IsWindows() ? NativeMethods.GetWindowText(Handle) : X11Desktop.GetWindowTitle(Handle);
 
-        public string ClassName => NativeMethods.GetClassName(Handle);
+        public string ClassName => OperatingSystem.IsWindows() ? NativeMethods.GetClassName(Handle) : X11Desktop.GetWindowClass(Handle);
 
-        public Process Process => NativeMethods.GetProcessByWindowHandle(Handle);
+        public Process Process => OperatingSystem.IsWindows() ? NativeMethods.GetProcessByWindowHandle(Handle) : GetX11Process();
 
         public string ProcessName
         {
@@ -69,6 +69,11 @@ namespace ShareX.HelpersLib
         {
             get
             {
+                if (!OperatingSystem.IsWindows())
+                {
+                    return X11Desktop.GetWindowProcessId(Handle);
+                }
+
                 using (Process process = Process)
                 {
                     return process.Id;
@@ -76,11 +81,11 @@ namespace ShareX.HelpersLib
             }
         }
 
-        public IntPtr Parent => NativeMethods.GetParent(Handle);
+        public IntPtr Parent => OperatingSystem.IsWindows() ? NativeMethods.GetParent(Handle) : IntPtr.Zero;
 
         public Rectangle Rectangle => CaptureHelpers.GetWindowRectangle(Handle);
 
-        public Rectangle ClientRectangle => NativeMethods.GetClientRect(Handle);
+        public Rectangle ClientRectangle => CaptureHelpers.GetClientRectangle(Handle);
 
         public WindowStyles Style
         {
@@ -164,17 +169,32 @@ namespace ShareX.HelpersLib
             }
         }
 
-        public Icon Icon => NativeMethods.GetApplicationIcon(Handle);
+        public Icon Icon => OperatingSystem.IsWindows() ? NativeMethods.GetApplicationIcon(Handle) : null;
 
-        public bool IsMaximized => NativeMethods.IsZoomed(Handle);
+        public bool IsMaximized => OperatingSystem.IsWindows() ? NativeMethods.IsZoomed(Handle) : X11Desktop.IsWindowMaximized(Handle);
 
-        public bool IsMinimized => NativeMethods.IsIconic(Handle);
+        public bool IsMinimized => OperatingSystem.IsWindows() ? NativeMethods.IsIconic(Handle) : X11Desktop.IsWindowMinimized(Handle);
 
-        public bool IsVisible => NativeMethods.IsWindowVisible(Handle);
+        public bool IsVisible => OperatingSystem.IsWindows() ? NativeMethods.IsWindowVisible(Handle) : X11Desktop.IsWindowVisible(Handle);
 
-        public bool IsCloaked => NativeMethods.IsWindowCloaked(Handle);
+        public bool IsCloaked => OperatingSystem.IsWindows() && NativeMethods.IsWindowCloaked(Handle);
 
-        public bool IsActive => NativeMethods.IsActive(Handle);
+        public bool IsActive => OperatingSystem.IsWindows() ? NativeMethods.IsActive(Handle) : X11Desktop.GetActiveWindow() == Handle;
+
+        /// <summary>The desktop background window, which shows desktop icons.</summary>
+        public bool IsDesktop
+        {
+            get
+            {
+                if (!OperatingSystem.IsWindows())
+                {
+                    return X11Desktop.HasWindowType(Handle, "_NET_WM_WINDOW_TYPE_DESKTOP");
+                }
+
+                string className = ClassName;
+                return className.Equals("Progman", StringComparison.OrdinalIgnoreCase) || className.Equals("WorkerW", StringComparison.OrdinalIgnoreCase);
+            }
+        }
 
         public WindowInfo(IntPtr handle)
         {
@@ -185,7 +205,14 @@ namespace ShareX.HelpersLib
         {
             if (IsHandleCreated)
             {
-                NativeMethods.SetForegroundWindow(Handle);
+                if (OperatingSystem.IsWindows())
+                {
+                    NativeMethods.SetForegroundWindow(Handle);
+                }
+                else
+                {
+                    X11Desktop.ActivateWindow(Handle);
+                }
             }
         }
 
@@ -193,7 +220,14 @@ namespace ShareX.HelpersLib
         {
             if (IsHandleCreated)
             {
-                SetWindowPos(SetWindowPosFlags.SWP_NOMOVE | SetWindowPosFlags.SWP_NOSIZE);
+                if (OperatingSystem.IsWindows())
+                {
+                    SetWindowPos(SetWindowPosFlags.SWP_NOMOVE | SetWindowPosFlags.SWP_NOSIZE);
+                }
+                else
+                {
+                    X11Desktop.ActivateWindow(Handle);
+                }
             }
         }
 
@@ -201,7 +235,15 @@ namespace ShareX.HelpersLib
         {
             if (IsHandleCreated)
             {
-                NativeMethods.ShowWindow(Handle, (int)WindowShowStyle.Restore);
+                if (OperatingSystem.IsWindows())
+                {
+                    NativeMethods.ShowWindow(Handle, (int)WindowShowStyle.Restore);
+                }
+                else
+                {
+                    // Activating a minimized window restores it on EWMH window managers.
+                    X11Desktop.ActivateWindow(Handle);
+                }
             }
         }
 
@@ -223,6 +265,24 @@ namespace ShareX.HelpersLib
         public void SetWindowPos(IntPtr insertAfter, int x, int y, int width, int height, SetWindowPosFlags flags)
         {
             NativeMethods.SetWindowPos(Handle, insertAfter, x, y, width, height, flags);
+        }
+
+        private Process GetX11Process()
+        {
+            int processId = X11Desktop.GetWindowProcessId(Handle);
+
+            if (processId > 0)
+            {
+                try
+                {
+                    return Process.GetProcessById(processId);
+                }
+                catch (ArgumentException)
+                {
+                }
+            }
+
+            return null;
         }
 
         public override string ToString()
