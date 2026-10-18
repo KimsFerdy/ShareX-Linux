@@ -164,7 +164,8 @@ internal sealed class MpvPlayback : IDisposable
             "--input-conf=" + _inputConfigPath,
             "--input-default-bindings=no", "--input-vo-keyboard=no", "--osc=no", "--osd-level=0",
             "--idle=yes", "--keep-open=always", "--pause", "--force-window=yes", "--hwdec=auto-safe",
-            "--cursor-autohide=no", "--no-terminal", "--background=color", "--background-color=#000000"
+            // Errors go to stderr, which is logged; mpv must not read the terminal.
+            "--cursor-autohide=no", "--input-terminal=no", "--msg-level=all=error,ffmpeg=no"
         })
         {
             startInfo.ArgumentList.Add(argument);
