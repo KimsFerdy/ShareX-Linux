@@ -72,6 +72,7 @@ internal static class ApplicationInfo
         get
         {
             string title = $"{Name} {VersionText}";
+            if (OperatingSystem.IsLinux()) title += " for Linux";
             if (ApplicationState.SettingsOrNull is { DevMode: true })
             {
                 string info = Build.ToString();

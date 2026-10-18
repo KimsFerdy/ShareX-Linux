@@ -61,7 +61,7 @@ public static class ColorPickerWindowIntegration
         Func<PointInfo>? openScreenColorPicker = null,
         ScreenColorPickerOptions? screenColorPickerOptions = null)
     {
-        NativeMethods.ReleaseCapture();
+        if (OperatingSystem.IsWindows()) NativeMethods.ReleaseCapture();
         AvaloniaBootstrapper.EnsureInitialized();
 
         DrawingColor? result;
@@ -99,7 +99,7 @@ public static class ColorPickerWindowIntegration
     {
         try
         {
-            NativeMethods.ReleaseCapture();
+            if (OperatingSystem.IsWindows()) NativeMethods.ReleaseCapture();
             ColorPickerWindow window =
                 new(currentColor, options, screenColorPickerOptions, openScreenColorPicker);
             window.Closed += (_, _) => completed(window.SelectedColor);

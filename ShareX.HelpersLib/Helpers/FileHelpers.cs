@@ -291,9 +291,9 @@ namespace ShareX.HelpersLib
         {
             if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
             {
-                if (!folderPath.EndsWith(@"\"))
+                if (!Path.EndsInDirectorySeparator(folderPath))
                 {
-                    folderPath += @"\";
+                    folderPath += Path.DirectorySeparatorChar;
                 }
 
                 try
@@ -334,7 +334,14 @@ namespace ShareX.HelpersLib
             {
                 try
                 {
-                    NativeMethods.OpenFolderAndSelectFile(filePath);
+                    if (OperatingSystem.IsWindows())
+                    {
+                        NativeMethods.OpenFolderAndSelectFile(filePath);
+                    }
+                    else if (!LinuxFileManager.ShowItem(filePath))
+                    {
+                        return OpenFolder(Path.GetDirectoryName(filePath));
+                    }
 
                     DebugHelper.WriteLine("Folder opened with file: " + filePath);
 

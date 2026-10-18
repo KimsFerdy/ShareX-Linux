@@ -40,7 +40,7 @@ namespace ShareX
 
             if (!string.IsNullOrEmpty(windowTitle))
             {
-                IntPtr hWnd = NativeMethods.SearchWindow(windowTitle);
+                IntPtr hWnd = CaptureHelpers.SearchWindow(windowTitle);
 
                 if (hWnd == IntPtr.Zero)
                 {

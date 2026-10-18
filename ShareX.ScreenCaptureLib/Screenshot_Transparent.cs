@@ -37,6 +37,12 @@ namespace ShareX.ScreenCaptureLib
     {
         public Bitmap CaptureWindowTransparent(IntPtr handle)
         {
+            // Transparency is found by showing the window over white and black backgrounds, which needs Win32 window ordering.
+            if (!OperatingSystem.IsWindows())
+            {
+                return CaptureWindow(handle);
+            }
+
             if (handle != IntPtr.Zero)
             {
                 Rectangle rect = CaptureHelpers.GetWindowRectangle(handle);

@@ -104,6 +104,19 @@ internal static class Program
         ApplicationDiagnostics.WriteStartupFlags();
 
         DebugHelper.WriteLine("Avalonia application initializing.");
+        if (!OperatingSystem.IsWindows())
+        {
+            ScreenAccess.Register(
+                () =>
+                {
+                    if (!X11Desktop.IsAvailable) return null;
+                    System.Drawing.Point position = X11Desktop.GetCursorPosition();
+                    return new Avalonia.PixelPoint(position.X, position.Y);
+                },
+                rectangle => X11Desktop.IsAvailable ?
+                    X11Desktop.CaptureRectanglePadded(new System.Drawing.Rectangle(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height)) : null);
+        }
+
         AvaloniaBootstrapper.Initialize(args, StartApplicationAsync, ApplicationLifecycle.OnAvaloniaStopped);
         ApplicationDiagnostics.InitializeAvalonia();
 

@@ -32,9 +32,14 @@ using System.Runtime.InteropServices;
 
 namespace ShareX.Tools;
 
+internal interface IMouseHighlighterOverlay : IDisposable
+{
+    void Refresh();
+}
+
 // A native layered window gives both per-pixel alpha and reliable click-through
 // behavior without changing Avalonia's renderer or the application's DPI mode.
-internal sealed class MouseHighlighterOverlayWindow : IDisposable
+internal sealed class MouseHighlighterOverlayWindow : IMouseHighlighterOverlay
 {
     private readonly MouseHighlighterService _service;
     private readonly Rectangle _screenBounds;
@@ -61,7 +66,7 @@ internal sealed class MouseHighlighterOverlayWindow : IDisposable
     public void Refresh()
     {
         MouseHighlighterOptions options = _service.Options;
-        Rectangle bounds = GetEffectBounds(options);
+        Rectangle bounds = GetEffectBounds(_service, options, _screenBounds);
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             if (_visible) NativeMethods.ShowWindow(Handle, 0); // SW_HIDE
@@ -74,7 +79,7 @@ internal sealed class MouseHighlighterOverlayWindow : IDisposable
         canvas.Clear(SKColors.Transparent);
         canvas.Save();
         canvas.Translate(-bounds.X, -bounds.Y);
-        Draw(canvas, options);
+        Draw(canvas, _service, options);
         canvas.Restore();
         canvas.Flush();
 
@@ -94,40 +99,42 @@ internal sealed class MouseHighlighterOverlayWindow : IDisposable
         }
     }
 
-    private Rectangle GetEffectBounds(MouseHighlighterOptions options)
+    /// <summary>The area of the screen that the current effects cover, in physical pixels.</summary>
+    internal static Rectangle GetEffectBounds(MouseHighlighterService service, MouseHighlighterOptions options, Rectangle screenBounds)
     {
         Rectangle bounds = Rectangle.Empty;
         if (options.Mode == MouseHighlightMode.Circle && options.AlwaysColor.A > 0)
         {
-            bounds = Rectangle.Intersect(Around(_service.CursorPosition, options.Radius + 2), _screenBounds);
+            bounds = Rectangle.Intersect(Around(service.CursorPosition, options.Radius + 2), screenBounds);
         }
-        foreach (MouseHighlight highlight in _service.Highlights)
+        foreach (MouseHighlight highlight in service.Highlights)
         {
             Color color = options.GetColor(highlight.Button);
             if (color.A == 0) continue;
             int radius = options.Mode == MouseHighlightMode.Ripple ? options.RippleSize / 2 + 12 : options.Radius + 2;
-            Rectangle effect = Rectangle.Intersect(Around(highlight.Position, radius), _screenBounds);
+            Rectangle effect = Rectangle.Intersect(Around(highlight.Position, radius), screenBounds);
             if (effect.Width > 0 && effect.Height > 0)
             {
                 bounds = bounds.Width <= 0 || bounds.Height <= 0 ? effect : Rectangle.Union(bounds, effect);
             }
         }
-        return Rectangle.Intersect(bounds, _screenBounds);
+        return Rectangle.Intersect(bounds, screenBounds);
     }
 
     private static Rectangle Around(System.Drawing.Point center, int radius) =>
         new(center.X - radius, center.Y - radius, radius * 2 + 1, radius * 2 + 1);
 
-    private void Draw(SKCanvas canvas, MouseHighlighterOptions options)
+    /// <summary>Draws the effects in screen pixel coordinates.</summary>
+    internal static void Draw(SKCanvas canvas, MouseHighlighterService service, MouseHighlighterOptions options)
     {
-        double time = _service.Time;
-        SKPoint cursor = new(_service.CursorPosition.X, _service.CursorPosition.Y);
+        double time = service.Time;
+        SKPoint cursor = new(service.CursorPosition.X, service.CursorPosition.Y);
         if (options.Mode == MouseHighlightMode.Circle)
         {
             using SKPaint always = Paint(options.AlwaysColor);
             canvas.DrawCircle(cursor, options.Radius, always);
         }
-        foreach (MouseHighlight highlight in _service.Highlights)
+        foreach (MouseHighlight highlight in service.Highlights)
         {
             Color color = options.GetColor(highlight.Button);
             SKPoint center = new(highlight.Position.X, highlight.Position.Y);

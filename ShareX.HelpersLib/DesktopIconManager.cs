@@ -31,6 +31,8 @@ namespace ShareX.HelpersLib
     {
         public static bool AreDesktopIconsVisible()
         {
+            if (!OperatingSystem.IsWindows()) return true;
+
             IntPtr hIcons = GetDesktopListViewHandle();
 
             return hIcons != IntPtr.Zero && NativeMethods.IsWindowVisible(hIcons);
@@ -38,6 +40,9 @@ namespace ShareX.HelpersLib
 
         public static bool SetDesktopIconsVisibility(bool show)
         {
+            // Linux desktops draw their icons in their own window, which X11 capture cannot hide separately.
+            if (!OperatingSystem.IsWindows()) return false;
+
             IntPtr hIcons = GetDesktopListViewHandle();
 
             if (hIcons != IntPtr.Zero)

@@ -48,7 +48,11 @@ internal sealed class MouseHighlighterMouseHook : IDisposable
         _input = input;
         _callback = OnMouseInput;
         TaskCompletionSource initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        _thread = new Thread(() => Run(initialized))
+        _thread = new Thread(() =>
+        {
+            if (OperatingSystem.IsWindows()) Run(initialized);
+            else RunX11(initialized);
+        })
         {
             IsBackground = true,
             Name = "ShareX mouse highlighter input",
@@ -100,6 +104,47 @@ internal sealed class MouseHighlighterMouseHook : IDisposable
         }
     }
 
+    // X11 has no low-level mouse hook for ordinary clients, so the pointer is polled. A 4 ms interval keeps clicks
+    // from being missed and costs one small X request per poll.
+    private void RunX11(TaskCompletionSource initialized)
+    {
+        try
+        {
+            if (!X11Desktop.TryGetPointerState(out System.Drawing.Point point, out bool primary, out bool middle, out bool secondary))
+            {
+                throw new InvalidOperationException("Unable to read the mouse pointer from the X server.");
+            }
+
+            initialized.SetResult();
+            _input.SetPosition(point);
+
+            while (Volatile.Read(ref _stopRequested) == 0)
+            {
+                Thread.Sleep(4);
+                if (!X11Desktop.TryGetPointerState(out point, out bool newPrimary, out bool newMiddle, out bool newSecondary)) continue;
+
+                _input.SetPosition(point);
+                PublishX11Button(MouseHighlightButton.Primary, primary, newPrimary, point);
+                PublishX11Button(MouseHighlightButton.Middle, middle, newMiddle, point);
+                PublishX11Button(MouseHighlightButton.Secondary, secondary, newSecondary, point);
+                (primary, middle, secondary) = (newPrimary, newMiddle, newSecondary);
+            }
+        }
+        catch (Exception ex)
+        {
+            Volatile.Write(ref _failure, ex);
+            initialized.TrySetException(ex);
+        }
+    }
+
+    private void PublishX11Button(MouseHighlightButton button, bool wasPressed, bool pressed, System.Drawing.Point point)
+    {
+        if (wasPressed != pressed)
+        {
+            _input.PublishButton(new MouseHighlighterButtonEvent(button, pressed, point, Stopwatch.GetTimestamp()));
+        }
+    }
+
     private IntPtr OnMouseInput(int code, IntPtr message, IntPtr data)
     {
         if (code >= 0)
@@ -129,7 +174,7 @@ internal sealed class MouseHighlighterMouseHook : IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         Volatile.Write(ref _stopRequested, 1);
         // The hook is removed by its owning thread. No UI dispatch is involved.
-        PostThreadMessage(_threadId, 0x0012, IntPtr.Zero, IntPtr.Zero); // WM_QUIT
+        if (OperatingSystem.IsWindows()) PostThreadMessage(_threadId, 0x0012, IntPtr.Zero, IntPtr.Zero); // WM_QUIT
         if (Thread.CurrentThread != _thread)
         {
             _thread.Join();

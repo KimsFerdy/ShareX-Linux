@@ -31,7 +31,9 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using ShareX.AvaloniaUI.Input;
+using ShareX.AvaloniaUI.Integration;
 using ShareX.AvaloniaUI.Theming;
+using SkiaSharp;
 using System.Runtime.InteropServices;
 
 namespace ShareX.AvaloniaUI.Windows
@@ -89,7 +91,7 @@ namespace ShareX.AvaloniaUI.Windows
                     PixelFormat.Bgra8888,
                     AlphaFormat.Opaque);
                 _magnifierImage.Source = _magnifierBitmap;
-                InitializeMagnifierCapture();
+                if (OperatingSystem.IsWindows()) InitializeMagnifierCapture();
             }
 
             Loaded += OnLoaded;
@@ -120,7 +122,7 @@ namespace ShareX.AvaloniaUI.Windows
 
         private void OnLoaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            if (!OperatingSystem.IsWindows())
+            if (!OperatingSystem.IsWindows() && !ScreenAccess.IsAvailable)
             {
                 Complete(null);
                 return;
@@ -129,9 +131,8 @@ namespace ShareX.AvaloniaUI.Windows
             Activate();
             Focus();
 
-            if (GetCursorPos(out NativePoint cursorPosition))
+            if (TryGetCursorPosition(out PixelPoint screenPoint))
             {
-                var screenPoint = new PixelPoint(cursorPosition.X, cursorPosition.Y);
                 UpdatePicker(screenPoint, this.PointToClient(screenPoint));
             }
         }
@@ -318,8 +319,54 @@ namespace ShareX.AvaloniaUI.Windows
             }
         }
 
+        private static bool TryGetCursorPosition(out PixelPoint position)
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                PixelPoint? cursor = ScreenAccess.GetCursorPosition();
+                position = cursor ?? default;
+                return cursor.HasValue;
+            }
+
+            bool result = GetCursorPos(out NativePoint cursorPosition);
+            position = new PixelPoint(cursorPosition.X, cursorPosition.Y);
+            return result;
+        }
+
+        private static unsafe bool TryUpdateMagnifierFromScreenAccess(PixelPoint center, WriteableBitmap bitmap, out Color color)
+        {
+            int radius = MagnifierPixelCount / 2;
+            using SKBitmap? capture = ScreenAccess.CaptureRectangle(
+                new PixelRect(center.X - radius, center.Y - radius, MagnifierPixelCount, MagnifierPixelCount));
+
+            if (capture == null || capture.ColorType != SKColorType.Bgra8888)
+            {
+                color = default;
+                return false;
+            }
+
+            using ILockedFramebuffer framebuffer = bitmap.Lock();
+            byte* source = (byte*)capture.GetPixels();
+            byte* destination = (byte*)framebuffer.Address;
+
+            for (int y = 0; y < MagnifierPixelCount; y++)
+            {
+                Buffer.MemoryCopy(source + (y * capture.RowBytes), destination + (y * framebuffer.RowBytes),
+                    framebuffer.RowBytes, MagnifierPixelCount * 4);
+            }
+
+            SKColor centerPixel = capture.GetPixel(radius, radius);
+            color = Color.FromRgb(centerPixel.Red, centerPixel.Green, centerPixel.Blue);
+            return true;
+        }
+
         private unsafe bool TryUpdateMagnifier(PixelPoint center, WriteableBitmap bitmap, out Color color)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return TryUpdateMagnifierFromScreenAccess(center, bitmap, out color);
+            }
+
             if (_magnifierDc == nint.Zero || _magnifierDib == nint.Zero || _magnifierBits == nint.Zero)
             {
                 color = default;
@@ -390,6 +437,14 @@ namespace ShareX.AvaloniaUI.Windows
 
         private static bool TryGetScreenColor(PixelPoint point, out Color color)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                using SKBitmap? pixel = ScreenAccess.CaptureRectangle(new PixelRect(point.X, point.Y, 1, 1));
+                SKColor value = pixel?.GetPixel(0, 0) ?? default;
+                color = Color.FromRgb(value.Red, value.Green, value.Blue);
+                return pixel != null;
+            }
+
             nint screenDc = GetDC(nint.Zero);
 
             if (screenDc == nint.Zero)

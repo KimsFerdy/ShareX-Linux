@@ -44,7 +44,7 @@ internal sealed class MouseHighlight
 // message loop and only communicates through the nonblocking input buffer.
 internal sealed class MouseHighlighterService : IDisposable
 {
-    private readonly List<MouseHighlighterOverlayWindow> _windows = [];
+    private readonly List<IMouseHighlighterOverlay> _windows = [];
     private readonly List<MouseHighlight> _highlights = [];
     private readonly DispatcherTimer _timer;
     private readonly MouseHighlighterMouseHook? _hook;
@@ -95,7 +95,9 @@ internal sealed class MouseHighlighterService : IDisposable
         // sizes stay in physical pixels, including monitors left of the origin.
         foreach (var screen in _screenProbe.Screens.All)
         {
-            MouseHighlighterOverlayWindow window = new(this, screen.Bounds);
+            IMouseHighlighterOverlay window = OperatingSystem.IsWindows()
+                ? new MouseHighlighterOverlayWindow(this, screen.Bounds)
+                : new MouseHighlighterX11Overlay(this, screen.Bounds, screen.Scaling);
             _windows.Add(window);
             window.Refresh();
         }
@@ -105,7 +107,7 @@ internal sealed class MouseHighlighterService : IDisposable
     {
         try
         {
-            foreach (MouseHighlighterOverlayWindow window in _windows) window.Dispose();
+            foreach (IMouseHighlighterOverlay window in _windows) window.Dispose();
             _windows.Clear();
             CreateOverlays();
         }
@@ -201,7 +203,7 @@ internal sealed class MouseHighlighterService : IDisposable
         }
         try
         {
-            foreach (MouseHighlighterOverlayWindow window in _windows) window.Refresh();
+            foreach (IMouseHighlighterOverlay window in _windows) window.Refresh();
         }
         catch (Exception ex) { MouseHighlighterManager.StopOnError(this, ex); }
     }
@@ -212,7 +214,7 @@ internal sealed class MouseHighlighterService : IDisposable
         _timer.Tick -= OnTick;
         _hook?.Dispose();
         _screenProbe.Screens.Changed -= OnScreensChanged;
-        foreach (MouseHighlighterOverlayWindow window in _windows) window.Dispose();
+        foreach (IMouseHighlighterOverlay window in _windows) window.Dispose();
         _screenProbe.Close();
         _windows.Clear();
         _highlights.Clear();

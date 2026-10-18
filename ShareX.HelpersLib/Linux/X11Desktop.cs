@@ -334,6 +334,23 @@ public static unsafe class X11Desktop
         }
     }
 
+    /// <summary>A window whose title is the given text, or else the topmost one whose title contains it.</summary>
+    public static IntPtr SearchWindow(string title)
+    {
+        List<IntPtr> windows = GetWindowsTopmostFirst();
+        foreach (IntPtr window in windows)
+        {
+            if (GetWindowTitle(window) == title) return window;
+        }
+
+        foreach (IntPtr window in windows)
+        {
+            if (GetWindowTitle(window).Contains(title, StringComparison.InvariantCultureIgnoreCase)) return window;
+        }
+
+        return IntPtr.Zero;
+    }
+
     /// <summary>Asks the window manager to activate the window, as a pager would.</summary>
     public static void ActivateWindow(IntPtr window)
     {
@@ -355,7 +372,14 @@ public static unsafe class X11Desktop
     /// Limits where a window is drawn and receives input to the given rectangles, in window pixels, so the rest of it is
     /// see-through and clicks reach the windows below.
     /// </summary>
-    public static bool SetWindowShape(IntPtr window, IReadOnlyList<Rectangle> rectangles)
+    public static bool SetWindowShape(IntPtr window, IReadOnlyList<Rectangle> rectangles) =>
+        SetWindowShape(window, rectangles, XcbNative.ShapeBounding, XcbNative.ShapeInput);
+
+    /// <summary>Limits where a window receives input, in window pixels. No rectangles makes it fully click-through.</summary>
+    public static bool SetWindowInputShape(IntPtr window, IReadOnlyList<Rectangle> rectangles) =>
+        SetWindowShape(window, rectangles, XcbNative.ShapeInput);
+
+    private static bool SetWindowShape(IntPtr window, IReadOnlyList<Rectangle> rectangles, params byte[] kinds)
     {
         if (window == IntPtr.Zero || !TryGetConnection(out IntPtr c)) return false;
 
@@ -367,7 +391,7 @@ public static unsafe class X11Desktop
         }
 
         bool success = true;
-        foreach (byte kind in new[] { XcbNative.ShapeBounding, XcbNative.ShapeInput })
+        foreach (byte kind in kinds)
         {
             XcbNative.GenericError* error = XcbNative.RequestCheck(c, XcbNative.ShapeRectangles(c, XcbNative.ShapeSet, kind, 0,
                 (uint)window, 0, 0, (uint)rectangles.Count, shape));
@@ -402,6 +426,32 @@ public static unsafe class X11Desktop
         }
     }
 
+    /// <summary>The pointer position and the state of the primary, middle and secondary buttons.</summary>
+    public static bool TryGetPointerState(out Point position, out bool primary, out bool middle, out bool secondary)
+    {
+        position = Point.Empty;
+        primary = middle = secondary = false;
+        if (!TryGetConnection(out IntPtr c)) return false;
+
+        byte* reply = XcbNative.QueryPointerReply(c, XcbNative.QueryPointer(c, rootWindow), null);
+        if (reply == null) return false;
+
+        try
+        {
+            position = new Point(*(short*)(reply + 16), *(short*)(reply + 18));
+            // Button masks follow the pointer mapping, so left-handed button swapping is already applied.
+            ushort mask = *(ushort*)(reply + 24);
+            primary = (mask & 0x100) != 0;
+            middle = (mask & 0x200) != 0;
+            secondary = (mask & 0x400) != 0;
+            return true;
+        }
+        finally
+        {
+            XcbNative.Free(reply);
+        }
+    }
+
     public static void SetCursorPosition(int x, int y)
     {
         if (!TryGetConnection(out IntPtr c)) return;
@@ -420,6 +470,41 @@ public static unsafe class X11Desktop
         if (bitmap == null) return Color.Empty;
         SKColor color = bitmap.GetPixel(0, 0);
         return Color.FromArgb(color.Red, color.Green, color.Blue);
+    }
+
+    /// <summary>Like <see cref="CaptureRectangle"/>, but parts of the rectangle outside the root window are black.</summary>
+    public static SKBitmap? CaptureRectanglePadded(Rectangle rect)
+    {
+        if (rect.Width <= 0 || rect.Height <= 0 || !TryGetConnection(out IntPtr c)) return null;
+
+        byte* geometry = XcbNative.GetGeometryReply(c, XcbNative.GetGeometry(c, rootWindow), null);
+        if (geometry == null) return null;
+        Rectangle rootBounds;
+        try
+        {
+            rootBounds = new Rectangle(0, 0, *(ushort*)(geometry + 16), *(ushort*)(geometry + 18));
+        }
+        finally
+        {
+            XcbNative.Free(geometry);
+        }
+
+        Rectangle visible = Rectangle.Intersect(rect, rootBounds);
+        if (visible == rect) return CaptureRectangle(rect, false);
+
+        SKBitmap result = new(new SKImageInfo(rect.Width, rect.Height, SKColorType.Bgra8888, SKAlphaType.Unpremul));
+        result.Erase(SKColors.Black);
+        if (visible.Width > 0 && visible.Height > 0)
+        {
+            using SKBitmap? part = CaptureRectangle(visible, false);
+            if (part != null)
+            {
+                using SKCanvas canvas = new(result);
+                canvas.DrawBitmap(part, visible.X - rect.X, visible.Y - rect.Y);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>Copies a rectangle of the root window, which on a compositing window manager is what the user sees.</summary>

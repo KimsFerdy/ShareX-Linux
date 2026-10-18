@@ -386,7 +386,7 @@ namespace ShareX.ImageEditor.Presentation.Views
         private Point? GetCursorScreenCenter(Visual relativeTo)
         {
             TopLevel? topLevel = TopLevel.GetTopLevel(this);
-            if (topLevel == null || !GetCursorPos(out NativePoint cursorPosition))
+            if (topLevel == null || !TryGetCursorPosition(out NativePoint cursorPosition))
             {
                 return null;
             }
@@ -410,6 +410,18 @@ namespace ShareX.ImageEditor.Presentation.Views
         {
             public int X;
             public int Y;
+        }
+
+        private static bool TryGetCursorPosition(out NativePoint point)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return GetCursorPos(out point);
+            }
+
+            PixelPoint? cursor = ShareX.AvaloniaUI.Integration.ScreenAccess.GetCursorPosition();
+            point = new NativePoint { X = cursor?.X ?? 0, Y = cursor?.Y ?? 0 };
+            return cursor.HasValue;
         }
 
         [DllImport("user32.dll")]

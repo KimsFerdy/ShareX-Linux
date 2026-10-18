@@ -346,6 +346,11 @@ namespace ShareX.HelpersLib
             return Rectangle.Intersect(X11Desktop.GetClientRectangle(handle), X11Desktop.GetWindowRectangle(handle));
         }
 
+        public static IntPtr SearchWindow(string windowTitle)
+        {
+            return OperatingSystem.IsWindows() ? NativeMethods.SearchWindow(windowTitle) : X11Desktop.SearchWindow(windowTitle);
+        }
+
         public static Rectangle GetActiveWindowRectangle()
         {
             IntPtr handle = GetForegroundWindow();

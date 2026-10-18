@@ -160,7 +160,7 @@ public partial class UpdateMessageWindow : Window
 
         WindowState = Avalonia.Controls.WindowState.Minimized;
         IntPtr handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle != IntPtr.Zero) NativeMethods.FlashWindowEx(handle, 10);
+        if (handle != IntPtr.Zero && OperatingSystem.IsWindows()) NativeMethods.FlashWindowEx(handle, 10);
     }
 
     private void OnViewChangelogClick(object? sender, RoutedEventArgs e) => URLHelpers.OpenURL(Links.Changelog);
