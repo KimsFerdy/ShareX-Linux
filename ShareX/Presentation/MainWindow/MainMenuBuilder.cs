@@ -174,16 +174,26 @@ internal sealed class MainMenuBuilder
 
     private static byte[]? GetWindowIcon(WindowInfo window)
     {
-        using Icon? icon = window.Icon;
-        if (icon == null)
+        using Bitmap? bitmap = GetWindowIconBitmap(window);
+        if (bitmap == null)
         {
             return null;
         }
 
-        using Bitmap bitmap = WindowsImageInterop.FromIcon(icon.Handle);
         using MemoryStream stream = new();
         bitmap.Save(stream, ImageFormat.Png);
         return stream.ToArray();
+    }
+
+    private static Bitmap? GetWindowIconBitmap(WindowInfo window)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return X11Desktop.GetWindowIcon(window.Handle, 16);
+        }
+
+        using Icon? icon = window.Icon;
+        return icon == null ? null : WindowsImageInterop.FromIcon(icon.Handle);
     }
 
     private IReadOnlyList<MainMenuEntry> BuildMonitorMenu()

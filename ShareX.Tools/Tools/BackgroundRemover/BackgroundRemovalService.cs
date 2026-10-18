@@ -135,6 +135,12 @@ public sealed class BackgroundRemovalService : IDisposable
             return new SessionCreationResult(new InferenceSession(modelPath), "CPU");
         }
 
+        // GPU inference uses DirectML, which only exists on Windows.
+        if (!OperatingSystem.IsWindows())
+        {
+            return new SessionCreationResult(new InferenceSession(modelPath), "CPU (GPU unavailable)");
+        }
+
         if (device == BackgroundRemovalDevice.GPU)
         {
             return CreateDirectMLSession(modelPath);

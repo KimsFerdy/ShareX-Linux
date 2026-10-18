@@ -63,6 +63,12 @@ public static class InspectWindowService
 
     public static IntPtr GetWindowAtPoint(int x, int y, bool topLevel)
     {
+        // X11 toolkits draw their controls inside the top-level window, so there is only the window to pick.
+        if (!OperatingSystem.IsWindows())
+        {
+            return X11Desktop.GetWindowAtPoint(new System.Drawing.Point(x, y));
+        }
+
         IntPtr handle = WindowFromPoint(new POINT(x, y));
         return topLevel && handle != IntPtr.Zero ? GetAncestor(handle, GA_ROOT) : handle;
     }
@@ -71,7 +77,7 @@ public static class InspectWindowService
     {
         List<InspectWindowListItem> windows = [];
 
-        NativeMethods.EnumWindows((handle, _) =>
+        bool AddWindow(IntPtr handle, IntPtr _)
         {
             if (handle == ignoredHandle)
             {
@@ -102,7 +108,19 @@ public static class InspectWindowService
             }
 
             return true;
-        }, IntPtr.Zero);
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            NativeMethods.EnumWindows(AddWindow, IntPtr.Zero);
+        }
+        else
+        {
+            foreach (IntPtr handle in X11Desktop.GetWindowsTopmostFirst())
+            {
+                AddWindow(handle, IntPtr.Zero);
+            }
+        }
 
         return windows.OrderBy(x => x.Title, StringComparer.CurrentCultureIgnoreCase).ToArray();
     }
@@ -128,6 +146,12 @@ public static class InspectWindowService
     {
         try
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                using SKBitmap? x11Icon = X11Desktop.GetWindowIcon(window.Handle);
+                return x11Icon == null ? null : ToAvaloniaBitmap(x11Icon);
+            }
+
             using System.Drawing.Icon? icon = window.Icon;
             if (icon == null || icon.Width <= 0 || icon.Height <= 0)
             {
@@ -135,15 +159,20 @@ public static class InspectWindowService
             }
 
             using SKBitmap bitmap = WindowsImageInterop.FromIcon(icon.Handle);
-            using MemoryStream stream = new();
-            bitmap.Save(stream, ImageFormat.Png);
-            stream.Position = 0;
-            return new AvaloniaBitmap(stream);
+            return ToAvaloniaBitmap(bitmap);
         }
         catch
         {
             return null;
         }
+    }
+
+    private static AvaloniaBitmap ToAvaloniaBitmap(SKBitmap bitmap)
+    {
+        using MemoryStream stream = new();
+        bitmap.Save(stream, ImageFormat.Png);
+        stream.Position = 0;
+        return new AvaloniaBitmap(stream);
     }
 
     [DllImport("user32.dll")]

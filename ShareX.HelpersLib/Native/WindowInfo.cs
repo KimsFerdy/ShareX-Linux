@@ -134,10 +134,21 @@ namespace ShareX.HelpersLib
         {
             get
             {
+                if (!OperatingSystem.IsWindows())
+                {
+                    return X11Desktop.HasWindowState(Handle, "_NET_WM_STATE_ABOVE");
+                }
+
                 return ExStyle.HasFlag(WindowStyles.WS_EX_TOPMOST);
             }
             set
             {
+                if (!OperatingSystem.IsWindows())
+                {
+                    X11Desktop.SetWindowState(Handle, "_NET_WM_STATE_ABOVE", value);
+                    return;
+                }
+
                 SetWindowPos(value ? (IntPtr)NativeConstants.HWND_TOPMOST : (IntPtr)NativeConstants.HWND_NOTOPMOST,
                     SetWindowPosFlags.SWP_NOMOVE | SetWindowPosFlags.SWP_NOSIZE);
             }
@@ -147,6 +158,11 @@ namespace ShareX.HelpersLib
         {
             get
             {
+                if (!OperatingSystem.IsWindows())
+                {
+                    return X11Desktop.GetWindowOpacity(Handle);
+                }
+
                 if (Layered)
                 {
                     NativeMethods.GetLayeredWindowAttributes(Handle, out _, out byte alpha, out _);
@@ -157,6 +173,12 @@ namespace ShareX.HelpersLib
             }
             set
             {
+                if (!OperatingSystem.IsWindows())
+                {
+                    X11Desktop.SetWindowOpacity(Handle, value);
+                    return;
+                }
+
                 if (value < 255)
                 {
                     Layered = true;

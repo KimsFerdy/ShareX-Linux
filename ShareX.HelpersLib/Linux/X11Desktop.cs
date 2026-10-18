@@ -351,6 +351,102 @@ public static unsafe class X11Desktop
         return IntPtr.Zero;
     }
 
+    /// <summary>The topmost visible window whose bounds contain the point.</summary>
+    public static IntPtr GetWindowAtPoint(Point point)
+    {
+        foreach (IntPtr window in GetWindowsTopmostFirst())
+        {
+            if (IsWindowVisible(window) && GetWindowRectangle(window).Contains(point)) return window;
+        }
+
+        return IntPtr.Zero;
+    }
+
+    /// <summary>Asks the window manager to add or remove an EWMH state, such as _NET_WM_STATE_ABOVE.</summary>
+    public static void SetWindowState(IntPtr window, string state, bool enable)
+    {
+        if (window == IntPtr.Zero) return;
+
+        IntPtr c = Connection;
+        byte* evt = stackalloc byte[32];
+        new Span<byte>(evt, 32).Clear();
+        evt[0] = XcbNative.ClientMessage;
+        evt[1] = 32;
+        *(uint*)(evt + 4) = (uint)window;
+        *(uint*)(evt + 8) = GetAtom("_NET_WM_STATE");
+        *(uint*)(evt + 12) = enable ? 1u : 0u; // _NET_WM_STATE_ADD or _NET_WM_STATE_REMOVE
+        *(uint*)(evt + 16) = GetAtom(state);
+        *(uint*)(evt + 24) = 2; // Source indication: pager.
+        XcbNative.SendEvent(c, 0, rootWindow, XcbNative.EventMaskSubstructureNotify | XcbNative.EventMaskSubstructureRedirect, evt);
+        XcbNative.Flush(c);
+    }
+
+    /// <summary>The window opacity that compositing window managers apply, from 0 to 255.</summary>
+    public static byte GetWindowOpacity(IntPtr window)
+    {
+        uint[] opacity = GetCardinalProperty((uint)window, "_NET_WM_WINDOW_OPACITY", 1);
+        return opacity.Length == 0 ? (byte)255 : (byte)(opacity[0] >> 24);
+    }
+
+    public static void SetWindowOpacity(IntPtr window, byte opacity)
+    {
+        if (window == IntPtr.Zero) return;
+
+        IntPtr c = Connection;
+        uint property = GetAtom("_NET_WM_WINDOW_OPACITY");
+        XcbNative.Cookie cookie;
+
+        if (opacity == 255)
+        {
+            cookie = XcbNative.DeleteProperty(c, (uint)window, property);
+        }
+        else
+        {
+            // The property scales opacity to the full 32 bit range.
+            uint value = (uint)(opacity * 0x01010101u);
+            cookie = XcbNative.ChangeProperty(c, XcbNative.PropModeReplace, (uint)window, property, XcbNative.AtomCardinal, 32, 1, &value);
+        }
+
+        XcbNative.GenericError* error = XcbNative.RequestCheck(c, cookie);
+        if (error != null) XcbNative.Free(error);
+    }
+
+    /// <summary>The window's _NET_WM_ICON image closest to the preferred size, preferring larger ones.</summary>
+    public static SKBitmap? GetWindowIcon(IntPtr window, int preferredSize = 32)
+    {
+        uint[] data = GetCardinalProperty((uint)window, "_NET_WM_ICON", 1 << 20);
+        int bestOffset = -1, bestWidth = 0, bestHeight = 0;
+
+        // The property holds width, height and width * height ARGB pixels for each icon size.
+        for (int offset = 0; offset + 2 <= data.Length;)
+        {
+            int width = (int)data[offset], height = (int)data[offset + 1];
+            if (width <= 0 || height <= 0 || offset + 2 + (long)width * height > data.Length) break;
+
+            bool better = bestOffset < 0 ||
+                (bestWidth < preferredSize ? width > bestWidth : width >= preferredSize && width < bestWidth);
+            if (better)
+            {
+                bestOffset = offset;
+                bestWidth = width;
+                bestHeight = height;
+            }
+
+            offset += 2 + width * height;
+        }
+
+        if (bestOffset < 0) return null;
+
+        // _NET_WM_ICON pixels are unpremultiplied ARGB, which is BGRA in memory on little endian systems.
+        SKBitmap icon = new(new SKImageInfo(bestWidth, bestHeight, SKColorType.Bgra8888, SKAlphaType.Unpremul));
+        fixed (uint* source = &data[bestOffset + 2])
+        {
+            Buffer.MemoryCopy(source, (void*)icon.GetPixels(), icon.ByteCount, (long)bestWidth * bestHeight * 4);
+        }
+
+        return icon;
+    }
+
     /// <summary>Asks the window manager to activate the window, as a pager would.</summary>
     public static void ActivateWindow(IntPtr window)
     {

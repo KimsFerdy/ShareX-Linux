@@ -255,6 +255,16 @@ internal static unsafe partial class XcbNative
     public static partial Cookie ShapeRectangles(IntPtr connection, byte operation, byte destinationKind, byte ordering,
         uint destinationWindow, short xOffset, short yOffset, uint rectanglesLength, XcbRectangle* rectangles);
 
+    public const byte PropModeReplace = 0;
+    public const uint AtomCardinal = 6;
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_change_property_checked")]
+    public static partial Cookie ChangeProperty(IntPtr connection, byte mode, uint window, uint property, uint type, byte format,
+        uint dataLength, void* data);
+
+    [LibraryImport(LibXcb, EntryPoint = "xcb_delete_property_checked")]
+    public static partial Cookie DeleteProperty(IntPtr connection, uint window, uint property);
+
     [LibraryImport(LibC, EntryPoint = "free")]
     public static partial void Free(void* pointer);
 
