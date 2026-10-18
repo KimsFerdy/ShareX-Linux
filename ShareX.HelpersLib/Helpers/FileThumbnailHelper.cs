@@ -47,10 +47,11 @@ public static class FileThumbnailHelper
             return NativeMethods.GetFileThumbnail(filePath, thumbnailSize);
         }
 
-        return FileHelpers.IsVideoFile(filePath) ? GetVideoThumbnail(filePath, thumbnailSize) : null;
+        return FileHelpers.IsVideoFile(filePath) ? GetVideoFrame(filePath, thumbnailSize, 0) : null;
     }
 
-    private static SKBitmap? GetVideoThumbnail(string filePath, Size thumbnailSize)
+    /// <summary>The video frame at the given time, scaled to fit the size, decoded with FFmpeg.</summary>
+    public static SKBitmap? GetVideoFrame(string filePath, Size thumbnailSize, double seconds)
     {
         string? ffmpegPath = LinuxEnvironment.FindExecutable("ffmpeg");
         if (ffmpegPath == null) return null;
@@ -65,7 +66,9 @@ public static class FileThumbnailHelper
 
         string scale = string.Format(CultureInfo.InvariantCulture,
             "scale={0}:{1}:force_original_aspect_ratio=decrease", Math.Max(thumbnailSize.Width, 1), Math.Max(thumbnailSize.Height, 1));
-        foreach (string argument in new[] { "-v", "error", "-i", filePath, "-frames:v", "1", "-vf", scale, "-f", "image2pipe", "-c:v", "png", "-" })
+        // Seeking before the input is fast, and with re-encoding it is still frame accurate.
+        string position = Math.Max(0, seconds).ToString("0.###", CultureInfo.InvariantCulture);
+        foreach (string argument in new[] { "-v", "error", "-ss", position, "-i", filePath, "-frames:v", "1", "-vf", scale, "-f", "image2pipe", "-c:v", "png", "-" })
         {
             startInfo.ArgumentList.Add(argument);
         }

@@ -2316,6 +2316,9 @@
   <data name="VideoTrimmer_PlaybackError" xml:space="preserve">
     <value>Windows could not play this video. Check that Windows supports its format and that the Windows media components are installed. {0}</value>
   </data>
+  <data name="VideoTrimmer_PlaybackError_Linux" xml:space="preserve">
+    <value>This video could not be played. {0}</value>
+  </data>
   <data name="VideoTrimmer_Precise" xml:space="preserve">
     <value>Re-encode</value>
   </data>

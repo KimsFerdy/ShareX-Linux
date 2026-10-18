@@ -6224,5 +6224,8 @@ namespace ShareX.Tools.Localization {
         public static string VideoPlayer_Unmute => ResourceManager.GetString("VideoPlayer_Unmute", resourceCulture);
         public static string VideoPlayer_Seek => ResourceManager.GetString("VideoPlayer_Seek", resourceCulture);
         public static string VideoPlayer_Volume => ResourceManager.GetString("VideoPlayer_Volume", resourceCulture);
+        public static string VideoTrimmer_PlaybackError_Linux {
+            get { return ResourceManager.GetString("VideoTrimmer_PlaybackError_Linux", resourceCulture); }
+        }
     }
 }

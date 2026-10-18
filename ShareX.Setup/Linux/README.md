@@ -24,7 +24,8 @@ The packages are written to `ShareX.Setup/Output/`. Set `DOTNET` to use a specif
 sudo apt install ./ShareX.Setup/Output/sharex_<version>_amd64.deb
 ```
 
-`apt` also installs the recommended packages: FFmpeg for screen recording, and `pactl` and `pw-play` for audio devices
+`apt` also installs the recommended packages: FFmpeg for screen recording, mpv for the video player and trimmer, and
+`pactl` and `pw-play` for audio devices
 and sounds. Install `tesseract-ocr` and its language data for OCR.
 
 ## Desktop support

@@ -210,7 +210,7 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
         _player.Unload();
         Duration = 0;
         UpdatePosition(0);
-        StatusText = string.Format(Strings.VideoTrimmer_PlaybackError, error.Message);
+        StatusText = string.Format((OperatingSystem.IsWindows() ? Strings.VideoTrimmer_PlaybackError : Strings.VideoTrimmer_PlaybackError_Linux), error.Message);
     }
 
     public void Dispose()

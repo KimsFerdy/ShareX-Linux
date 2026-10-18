@@ -67,6 +67,8 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     private double _volume = 1;
     private bool _isMuted;
     private bool _leftButtonPressed;
+    // On Linux, mpv plays into the X11 window that NativeControlHost creates.
+    private MpvPlayback? _mpv;
 
     public event Action<double>? PositionChanged;
     public event Action<bool>? IsPlayingChanged;
@@ -74,7 +76,7 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     public event Action? VideoClicked;
 
     /// <summary>Includes a play request waiting for a pending seek or frame step to finish.</summary>
-    public bool IsPlaybackRequested => _playWhenReady;
+    public bool IsPlaybackRequested => _mpv?.IsPlaybackRequested ?? _playWhenReady;
 
     public double Volume
     {
@@ -84,6 +86,7 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
             Dispatcher.UIThread.VerifyAccess();
             if (!double.IsFinite(value)) return;
             _volume = Math.Clamp(value, 0, 1);
+            _mpv?.SetVolume(_volume);
             if (_engine != null) TryOperation(() => _engine.Volume = _volume);
         }
     }
@@ -95,6 +98,7 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
         {
             Dispatcher.UIThread.VerifyAccess();
             _isMuted = value;
+            _mpv?.SetMuted(_isMuted);
             if (_engine != null) TryOperation(() => _engine.Muted = _isMuted);
         }
     }
@@ -119,7 +123,19 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
     {
         if (!OperatingSystem.IsWindows() || parent.HandleDescriptor != "HWND")
-            return base.CreateNativeControlCore(parent);
+        {
+            IPlatformHandle handle = base.CreateNativeControlCore(parent);
+            if (!OperatingSystem.IsWindows())
+            {
+                _mpv = new MpvPlayback(handle.Handle);
+                _mpv.PositionChanged += position => PositionChanged?.Invoke(position);
+                _mpv.IsPlayingChanged += playing => IsPlayingChanged?.Invoke(playing);
+                _mpv.PlaybackFailed += exception => PlaybackFailed?.Invoke(exception);
+                _mpv.VideoClicked += () => VideoClicked?.Invoke();
+                _windowReady.TrySetResult(handle.Handle);
+            }
+            return handle;
+        }
 
         // Painting is handled by WindowProcedure so the static control cannot paint over the video.
         _window = CreateWindowEx(0, "STATIC", string.Empty, 0x56000004,
@@ -140,6 +156,9 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     {
         if (control.HandleDescriptor != "HWND")
         {
+            _mpv?.Dispose();
+            _mpv = null;
+            _windowReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
             base.DestroyNativeControlCore(control);
             return;
         }
@@ -155,7 +174,7 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     {
         Dispatcher.UIThread.VerifyAccess();
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (!OperatingSystem.IsWindows()) return await LoadWithMpvAsync(path, token);
         CloseMedia();
         int generation = _generation;
         try
@@ -224,15 +243,35 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
         _engine.Load();
     }
 
+    private async Task<VideoPlaybackInfo> LoadWithMpvAsync(string path, CancellationToken token)
+    {
+        await _windowReady.Task.WaitAsync(token);
+        MpvPlayback mpv = _mpv ?? throw new InvalidOperationException("The video surface is not ready.");
+        VideoPlaybackInfo info = await mpv.LoadAsync(path, _volume, _isMuted, token);
+        _duration = info.Duration;
+        _videoAspectRatio = info.Width > 0 && info.Height > 0 ? (double)info.Width / info.Height : 0;
+        InvalidateMeasure();
+        return info;
+    }
+
     public void Unload()
     {
         Dispatcher.UIThread.VerifyAccess();
+        if (_mpv != null)
+        {
+            _mpv.Unload();
+            _duration = 0;
+            _videoAspectRatio = 0;
+            InvalidateMeasure();
+            return;
+        }
         CloseMedia();
     }
 
     public void Seek(double seconds)
     {
         Dispatcher.UIThread.VerifyAccess();
+        if (_mpv != null) { _mpv.Seek(seconds); return; }
         if (_engine == null || _duration <= 0 || !double.IsFinite(seconds)) return;
         Pause();
         _pendingSteps = 0;
@@ -244,6 +283,7 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     public void Play()
     {
         Dispatcher.UIThread.VerifyAccess();
+        if (_mpv != null) { _mpv.Play(); return; }
         if (_engine == null || _duration <= 0) return;
         if (_engine.IsEnded && !_seeking && _pendingSeek == null) Seek(0);
         _playWhenReady = true;
@@ -253,6 +293,7 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     public void Pause()
     {
         Dispatcher.UIThread.VerifyAccess();
+        if (_mpv != null) { _mpv.Pause(); return; }
         _playWhenReady = false;
         _positionTimer.Stop();
         // Stop presenting before the engine's asynchronous pause drains its playback queues.
@@ -264,6 +305,7 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
     public void StepFrame(bool forward)
     {
         Dispatcher.UIThread.VerifyAccess();
+        if (_mpv != null) { _mpv.StepFrame(forward); return; }
         if (_engine == null || _duration <= 0) return;
         Pause();
         _pendingSteps = Math.Clamp(_pendingSteps + (forward ? 1 : -1), -60, 60);
@@ -521,7 +563,9 @@ public sealed class WindowsMediaPlayer : NativeControlHost, IDisposable
         Dispatcher.UIThread.VerifyAccess();
         if (_disposed) return;
         _disposed = true;
-        CloseMedia();
+        _mpv?.Dispose();
+        _mpv = null;
+        if (OperatingSystem.IsWindows()) CloseMedia();
         _windowReady.TrySetCanceled();
     }
 

@@ -34,7 +34,32 @@ namespace ShareX.Tools;
 /// <summary>Uses one native decoder for a sparse filmstrip, independently of the playback engine.</summary>
 internal static class NativeVideoThumbnails
 {
+    private const int ThumbnailCount = 12;
+
     public static Task<IReadOnlyList<VideoTrimmerThumbnail>> CreateAsync(string path, double duration, CancellationToken token) =>
+        OperatingSystem.IsWindows() ? CreateWithMediaFoundationAsync(path, duration, token) : CreateWithFFmpegAsync(path, duration, token);
+
+    private static async Task<IReadOnlyList<VideoTrimmerThumbnail>> CreateWithFFmpegAsync(string path, double duration, CancellationToken token)
+    {
+        VideoTrimmerThumbnail?[] thumbnails = new VideoTrimmerThumbnail?[ThumbnailCount];
+        await Parallel.ForAsync(0, ThumbnailCount, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = token }, (i, _) =>
+        {
+            double position = duration * i / ThumbnailCount;
+            using SkiaSharp.SKBitmap? frame = ShareX.HelpersLib.FileThumbnailHelper.GetVideoFrame(path, new System.Drawing.Size(160, 90), position);
+            if (frame != null)
+            {
+                using SkiaSharp.SKData png = frame.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+                using MemoryStream stream = new(png.ToArray());
+                thumbnails[i] = new VideoTrimmerThumbnail(position, new Bitmap(stream));
+            }
+
+            return ValueTask.CompletedTask;
+        });
+
+        return thumbnails.OfType<VideoTrimmerThumbnail>().ToArray();
+    }
+
+    private static Task<IReadOnlyList<VideoTrimmerThumbnail>> CreateWithMediaFoundationAsync(string path, double duration, CancellationToken token) =>
         Task.Run<IReadOnlyList<VideoTrimmerThumbnail>>(() =>
         {
             List<VideoTrimmerThumbnail> thumbnails = [];

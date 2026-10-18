@@ -201,7 +201,7 @@ public sealed partial class VideoTrimmerViewModel : ViewModelBase, IDisposable
         {
             if (!token.IsCancellationRequested)
             {
-                StatusText = string.Format(Strings.VideoTrimmer_PlaybackError, ex.Message);
+                StatusText = string.Format((OperatingSystem.IsWindows() ? Strings.VideoTrimmer_PlaybackError : Strings.VideoTrimmer_PlaybackError_Linux), ex.Message);
                 ShowErrorRequested?.Invoke(StatusText);
             }
         }
@@ -249,7 +249,7 @@ public sealed partial class VideoTrimmerViewModel : ViewModelBase, IDisposable
         _loadCancellation?.Cancel();
         Duration = 0;
         ClearThumbnails();
-        StatusText = string.Format(Strings.VideoTrimmer_PlaybackError, error.Message);
+        StatusText = string.Format((OperatingSystem.IsWindows() ? Strings.VideoTrimmer_PlaybackError : Strings.VideoTrimmer_PlaybackError_Linux), error.Message);
         ShowErrorRequested?.Invoke(StatusText);
     }
 
