@@ -236,6 +236,25 @@ internal static unsafe partial class XcbNative
     [LibraryImport(LibXcbXfixes, EntryPoint = "xcb_xfixes_get_cursor_image_cursor_image")]
     public static partial uint* XfixesGetCursorImageData(byte* reply);
 
+    private const string LibXcbShape = "libxcb-shape.so.0";
+
+    public const byte ShapeSet = 0;
+    public const byte ShapeBounding = 0;
+    public const byte ShapeInput = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XcbRectangle
+    {
+        public short X;
+        public short Y;
+        public ushort Width;
+        public ushort Height;
+    }
+
+    [LibraryImport(LibXcbShape, EntryPoint = "xcb_shape_rectangles_checked")]
+    public static partial Cookie ShapeRectangles(IntPtr connection, byte operation, byte destinationKind, byte ordering,
+        uint destinationWindow, short xOffset, short yOffset, uint rectanglesLength, XcbRectangle* rectangles);
+
     [LibraryImport(LibC, EntryPoint = "free")]
     public static partial void Free(void* pointer);
 

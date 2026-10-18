@@ -687,7 +687,8 @@ public partial class ScreenRecordWindow : Window, IDisposable
     private void ApplyToolWindowStyle()
     {
         IntPtr handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero)
+        // ShowInTaskbar already keeps the window out of the taskbar and pagers on Linux.
+        if (handle == IntPtr.Zero || !OperatingSystem.IsWindows())
         {
             return;
         }
@@ -713,6 +714,22 @@ public partial class ScreenRecordWindow : Window, IDisposable
         int toolbarTop = frameHeight + ToolbarGapPixels;
         int toolbarWidth = (int)Math.Ceiling(DisplayedToolbarWidth * _windowScaling);
         int toolbarHeight = (int)Math.Ceiling(ToolbarHeight * _windowScaling);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            // The border strips around the recording area and the toolbar, leaving the recorded area click-through.
+            int left = _frameLeftPixels;
+            int right = _frameLeftPixels + frameWidth;
+            X11Desktop.SetWindowShape(handle,
+            [
+                new DrawingRectangle(left, 0, frameWidth, BorderPixels),
+                new DrawingRectangle(left, frameHeight - BorderPixels, frameWidth, BorderPixels),
+                new DrawingRectangle(left, BorderPixels, BorderPixels, frameHeight - BorderPixels * 2),
+                new DrawingRectangle(right - BorderPixels, BorderPixels, BorderPixels, frameHeight - BorderPixels * 2),
+                new DrawingRectangle(_toolbarLeftPixels, toolbarTop, toolbarWidth, toolbarHeight)
+            ]);
+            return;
+        }
 
         IntPtr windowRegion = CreateRectRgn(_frameLeftPixels, 0, _frameLeftPixels + frameWidth, frameHeight);
         IntPtr apertureRegion = CreateRectRgn(

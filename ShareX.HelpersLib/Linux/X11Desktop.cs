@@ -351,6 +351,36 @@ public static unsafe class X11Desktop
         XcbNative.Flush(c);
     }
 
+    /// <summary>
+    /// Limits where a window is drawn and receives input to the given rectangles, in window pixels, so the rest of it is
+    /// see-through and clicks reach the windows below.
+    /// </summary>
+    public static bool SetWindowShape(IntPtr window, IReadOnlyList<Rectangle> rectangles)
+    {
+        if (window == IntPtr.Zero || !TryGetConnection(out IntPtr c)) return false;
+
+        XcbNative.XcbRectangle* shape = stackalloc XcbNative.XcbRectangle[rectangles.Count];
+        for (int i = 0; i < rectangles.Count; i++)
+        {
+            Rectangle r = rectangles[i];
+            shape[i] = new XcbNative.XcbRectangle { X = (short)r.X, Y = (short)r.Y, Width = (ushort)Math.Max(r.Width, 0), Height = (ushort)Math.Max(r.Height, 0) };
+        }
+
+        bool success = true;
+        foreach (byte kind in new[] { XcbNative.ShapeBounding, XcbNative.ShapeInput })
+        {
+            XcbNative.GenericError* error = XcbNative.RequestCheck(c, XcbNative.ShapeRectangles(c, XcbNative.ShapeSet, kind, 0,
+                (uint)window, 0, 0, (uint)rectangles.Count, shape));
+            if (error != null)
+            {
+                success = false;
+                XcbNative.Free(error);
+            }
+        }
+
+        return success;
+    }
+
     #endregion Windows
 
     #region Pointer

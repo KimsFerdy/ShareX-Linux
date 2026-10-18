@@ -241,7 +241,7 @@ public sealed class ImageHistoryThumbnailLoader : IDisposable
 
         try
         {
-            using DrawingBitmap? shellThumbnail = NativeMethods.GetFileThumbnail(filePath, new DrawingSize(width, height));
+            using DrawingBitmap? shellThumbnail = FileThumbnailHelper.GetFileThumbnail(filePath, new DrawingSize(width, height));
             if (shellThumbnail != null)
             {
                 if (token.IsCancellationRequested) return null;
