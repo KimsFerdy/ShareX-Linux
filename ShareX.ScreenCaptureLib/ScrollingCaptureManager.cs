@@ -108,7 +108,10 @@ namespace ShareX.ScreenCaptureLib
                     if (Options.AutoScrollTop)
                     {
                         InputHelpers.SendKeyPress(VirtualKeyCode.HOME);
-                        NativeMethods.SendMessage(selectedWindow.Handle, (int)WindowsMessages.VSCROLL, (int)ScrollBarCommands.SB_TOP, 0);
+                        if (OperatingSystem.IsWindows())
+                        {
+                            NativeMethods.SendMessage(selectedWindow.Handle, (int)WindowsMessages.VSCROLL, (int)ScrollBarCommands.SB_TOP, 0);
+                        }
 
                         await Task.Delay(Options.ScrollDelay);
                     }
@@ -140,6 +143,10 @@ namespace ShareX.ScreenCaptureLib
                                 break;
                             case ScrollMethod.PageDown:
                                 InputHelpers.SendKeyPress(VirtualKeyCode.NEXT);
+                                break;
+                            case ScrollMethod.ScrollMessage when !OperatingSystem.IsWindows():
+                                // Scroll bar messages are Win32 only; scroll with the wheel instead.
+                                InputHelpers.SendMouseWheel(-120 * Options.ScrollAmount);
                                 break;
                             case ScrollMethod.ScrollMessage:
                                 for (int i = 0; i < Options.ScrollAmount; i++)
@@ -225,6 +232,11 @@ namespace ShareX.ScreenCaptureLib
 
         private bool IsScrollReachedBottom(IntPtr handle)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return CompareLastTwoImages();
+            }
+
             SCROLLINFO scrollInfo = new SCROLLINFO();
             scrollInfo.cbSize = (uint)Marshal.SizeOf(scrollInfo);
             scrollInfo.fMask = (uint)(ScrollInfoMask.SIF_RANGE | ScrollInfoMask.SIF_PAGE | ScrollInfoMask.SIF_TRACKPOS);

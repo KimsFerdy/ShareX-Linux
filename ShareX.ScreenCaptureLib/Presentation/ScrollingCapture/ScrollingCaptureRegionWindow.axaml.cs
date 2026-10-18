@@ -95,7 +95,8 @@ public partial class ScrollingCaptureRegionWindow : Window
     private void ApplyClickThroughToolWindowStyle()
     {
         IntPtr handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
-        if (handle == IntPtr.Zero)
+        // On X11 the frame region below also makes the window click-through.
+        if (handle == IntPtr.Zero || !OperatingSystem.IsWindows())
         {
             return;
         }
@@ -109,6 +110,18 @@ public partial class ScrollingCaptureRegionWindow : Window
         IntPtr handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
         if (handle == IntPtr.Zero)
         {
+            return;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            X11Desktop.SetWindowShapeClickThrough(handle,
+            [
+                new System.Drawing.Rectangle(0, 0, _frameWidth, BorderPixels),
+                new System.Drawing.Rectangle(0, _frameHeight - BorderPixels, _frameWidth, BorderPixels),
+                new System.Drawing.Rectangle(0, BorderPixels, BorderPixels, _frameHeight - BorderPixels * 2),
+                new System.Drawing.Rectangle(_frameWidth - BorderPixels, BorderPixels, BorderPixels, _frameHeight - BorderPixels * 2)
+            ]);
             return;
         }
 

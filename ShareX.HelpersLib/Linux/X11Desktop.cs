@@ -375,6 +375,10 @@ public static unsafe class X11Desktop
     public static bool SetWindowShape(IntPtr window, IReadOnlyList<Rectangle> rectangles) =>
         SetWindowShape(window, rectangles, XcbNative.ShapeBounding, XcbNative.ShapeInput);
 
+    /// <summary>Limits where a window is drawn to the given rectangles and makes it fully click-through.</summary>
+    public static bool SetWindowShapeClickThrough(IntPtr window, IReadOnlyList<Rectangle> rectangles) =>
+        SetWindowShape(window, rectangles, XcbNative.ShapeBounding) && SetWindowShape(window, [], XcbNative.ShapeInput);
+
     /// <summary>Limits where a window receives input, in window pixels. No rectangles makes it fully click-through.</summary>
     public static bool SetWindowInputShape(IntPtr window, IReadOnlyList<Rectangle> rectangles) =>
         SetWindowShape(window, rectangles, XcbNative.ShapeInput);
