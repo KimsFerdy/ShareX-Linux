@@ -381,6 +381,60 @@ public static unsafe class X11Desktop
         XcbNative.Flush(c);
     }
 
+    /// <summary>Asks the window manager to move and resize the window so its client area has these bounds.</summary>
+    public static void MoveResizeWindow(IntPtr window, Rectangle clientBounds)
+    {
+        if (window == IntPtr.Zero) return;
+
+        IntPtr c = Connection;
+        byte* evt = stackalloc byte[32];
+        new Span<byte>(evt, 32).Clear();
+        evt[0] = XcbNative.ClientMessage;
+        evt[1] = 32;
+        *(uint*)(evt + 4) = (uint)window;
+        *(uint*)(evt + 8) = GetAtom("_NET_MOVERESIZE_WINDOW");
+        // Static gravity (10) places the client area itself; bits 8 to 11 apply x, y, width and height; source is a pager.
+        *(uint*)(evt + 12) = 10u | (0xFu << 8) | (2u << 12);
+        *(int*)(evt + 16) = clientBounds.X;
+        *(int*)(evt + 20) = clientBounds.Y;
+        *(int*)(evt + 24) = clientBounds.Width;
+        *(int*)(evt + 28) = clientBounds.Height;
+        XcbNative.SendEvent(c, 0, rootWindow, XcbNative.EventMaskSubstructureNotify | XcbNative.EventMaskSubstructureRedirect, evt);
+        XcbNative.Flush(c);
+    }
+
+    /// <summary>The window's Motif window manager hints, which decide whether it gets a frame, or null if it has none.</summary>
+    public static uint[]? GetMotifHints(IntPtr window)
+    {
+        uint[] hints = GetCardinalProperty((uint)window, "_MOTIF_WM_HINTS", 5);
+        return hints.Length == 5 ? hints : null;
+    }
+
+    /// <summary>Sets the Motif hints, or removes them when null, so the window manager redraws the frame accordingly.</summary>
+    public static void SetMotifHints(IntPtr window, uint[]? hints)
+    {
+        if (window == IntPtr.Zero) return;
+
+        IntPtr c = Connection;
+        uint property = GetAtom("_MOTIF_WM_HINTS");
+        XcbNative.Cookie cookie;
+
+        if (hints == null)
+        {
+            cookie = XcbNative.DeleteProperty(c, (uint)window, property);
+        }
+        else
+        {
+            fixed (uint* data = hints)
+            {
+                cookie = XcbNative.ChangeProperty(c, XcbNative.PropModeReplace, (uint)window, property, property, 32, (uint)hints.Length, data);
+            }
+        }
+
+        XcbNative.GenericError* error = XcbNative.RequestCheck(c, cookie);
+        if (error != null) XcbNative.Free(error);
+    }
+
     /// <summary>The window opacity that compositing window managers apply, from 0 to 255.</summary>
     public static byte GetWindowOpacity(IntPtr window)
     {

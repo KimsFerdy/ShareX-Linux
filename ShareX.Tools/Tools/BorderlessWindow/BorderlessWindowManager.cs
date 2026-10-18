@@ -32,6 +32,10 @@ namespace ShareX.Tools;
 public static class BorderlessWindowManager
 {
     private static readonly ConcurrentDictionary<IntPtr, BorderlessWindowInfo> BorderlessWindows = new();
+    private static readonly ConcurrentDictionary<IntPtr, X11BorderlessWindowInfo> X11BorderlessWindows = new();
+
+    /// <summary>What an X11 window looked like before it was made borderless.</summary>
+    private sealed record X11BorderlessWindowInfo(bool Fullscreen, Rectangle ClientBounds, uint[]? MotifHints);
 
     public static bool ToggleBorderlessWindow(string windowTitle, bool useWorkingArea = false)
     {
@@ -40,7 +44,7 @@ public static class BorderlessWindowManager
             return false;
         }
 
-        IntPtr handle = NativeMethods.SearchWindow(windowTitle);
+        IntPtr handle = CaptureHelpers.SearchWindow(windowTitle);
         if (handle == IntPtr.Zero)
         {
             return false;
@@ -52,6 +56,12 @@ public static class BorderlessWindowManager
 
     public static void ToggleBorderlessWindow(IntPtr handle, bool useWorkingArea = false)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            ToggleX11BorderlessWindow(handle, useWorkingArea);
+            return;
+        }
+
         if (BorderlessWindows.TryGetValue(handle, out BorderlessWindowInfo? info))
         {
             RestoreWindow(handle, info);
@@ -60,6 +70,48 @@ public static class BorderlessWindowManager
         {
             MakeWindowBorderless(handle, useWorkingArea);
         }
+    }
+
+    private static void ToggleX11BorderlessWindow(IntPtr handle, bool useWorkingArea)
+    {
+        WindowInfo window = new(handle);
+        if (window.IsMinimized)
+        {
+            window.Restore();
+        }
+
+        if (X11BorderlessWindows.TryRemove(handle, out X11BorderlessWindowInfo? info))
+        {
+            if (info.Fullscreen)
+            {
+                X11Desktop.SetWindowState(handle, "_NET_WM_STATE_FULLSCREEN", false);
+            }
+            else
+            {
+                X11Desktop.SetMotifHints(handle, info.MotifHints);
+                X11Desktop.MoveResizeWindow(handle, info.ClientBounds);
+            }
+
+            return;
+        }
+
+        info = new X11BorderlessWindowInfo(!useWorkingArea, CaptureHelpers.GetClientRectangle(handle), X11Desktop.GetMotifHints(handle));
+
+        if (info.Fullscreen)
+        {
+            // The window manager removes the frame and covers the monitor exactly.
+            X11Desktop.SetWindowState(handle, "_NET_WM_STATE_FULLSCREEN", true);
+        }
+        else
+        {
+            uint[] hints = info.MotifHints is { } current ? (uint[])current.Clone() : new uint[5];
+            hints[0] |= 2; // MWM_HINTS_DECORATIONS
+            hints[2] = 0; // No decorations.
+            X11Desktop.SetMotifHints(handle, hints);
+            X11Desktop.MoveResizeWindow(handle, CaptureHelpers.GetScreenBounds(handle, true));
+        }
+
+        X11BorderlessWindows.TryAdd(handle, info);
     }
 
     private static void RestoreWindow(IntPtr handle, BorderlessWindowInfo info)
