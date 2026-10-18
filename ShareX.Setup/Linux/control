@@ -1,0 +1,14 @@
+Package: sharex
+Version: @VERSION@
+Architecture: @ARCH@
+Maintainer: ShareX Linux port <102543259+KimsFerdy@users.noreply.github.com>
+Installed-Size: @INSTALLED_SIZE@
+Section: graphics
+Priority: optional
+Homepage: https://getsharex.com
+Depends: libc6, libstdc++6, libgcc-s1, libicu74 | libicu72 | libicu70, libssl3 | libssl1.1, zlib1g, libfontconfig1, libfreetype6, libx11-6, libice6, libsm6, libxcb1, libxcb-xfixes0, libxcb-shape0, libxrandr2, libxi6, libxcursor1
+Recommends: ffmpeg, pulseaudio-utils, pipewire-bin | alsa-utils, libgl1
+Suggests: tesseract-ocr
+Description: Screen capture, file sharing and productivity tool
+ ShareX captures screenshots, records the screen and GIFs, annotates images
+ and uploads files to many destinations. This build targets X11 desktops.

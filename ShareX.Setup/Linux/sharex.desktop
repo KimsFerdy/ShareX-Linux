@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ShareX
+GenericName=Screen Capture
+Comment=Screen capture, file sharing and productivity tool
+Exec=/opt/sharex/ShareX %F
+Icon=sharex
+Terminal=false
+Categories=Graphics;Utility;
+Keywords=screenshot;screen;capture;record;gif;upload;
+StartupWMClass=ShareX
