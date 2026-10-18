@@ -337,7 +337,13 @@ namespace ShareX.HelpersLib
 
         public static Rectangle GetClientRectangle(IntPtr handle)
         {
-            return OperatingSystem.IsWindows() ? NativeMethods.GetClientRect(handle) : X11Desktop.GetClientRectangle(handle);
+            if (OperatingSystem.IsWindows())
+            {
+                return NativeMethods.GetClientRect(handle);
+            }
+
+            // An X11 window that draws its own frame includes its shadow margins, so keep only the visible part.
+            return Rectangle.Intersect(X11Desktop.GetClientRectangle(handle), X11Desktop.GetWindowRectangle(handle));
         }
 
         public static Rectangle GetActiveWindowRectangle()
