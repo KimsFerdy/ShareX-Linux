@@ -3987,6 +3987,15 @@ namespace ShareX.Tools.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Optical character recognition requires Tesseract. Install the &quot;tesseract-ocr&quot; package and the language data you need, then try again..
+        /// </summary>
+        public static string OCRHelper_Requires_Tesseract {
+            get {
+                return ResourceManager.GetString("OCRHelper_Requires_Tesseract", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Optical character recognition is only available with Windows version {0} or newer..
         /// </summary>
         public static string OCRHelper_Requires_Windows_version {

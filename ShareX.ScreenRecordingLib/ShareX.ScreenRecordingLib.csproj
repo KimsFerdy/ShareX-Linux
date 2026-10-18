@@ -1,13 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
-    <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
+    <TargetFramework>$(ShareXWindowsSdkTargetFramework)</TargetFramework>
+    <SupportedOSPlatformVersion Condition="'$(ShareXTargetOS)' == 'windows'">10.0.22621.0</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Description>Windows-native GPU screen recording and WASAPI audio capture</Description>
   </PropertyGroup>
+  <ItemGroup Condition="'$(ShareXTargetOS)' == 'windows'">
+    <Compile Remove="Linux\**" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ShareXTargetOS)' != 'windows'">
+    <!-- The native engine is Direct3D 11, Media Foundation and WASAPI; Linux records through FFmpeg instead. -->
+    <Compile Remove="Audio\**;Encoding\**;Native\**;Video\**;AudioCaptureDevices.cs;CameraCaptureDevices.cs;ScreenRecorder.cs" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Vortice.Direct3D11" />
     <PackageReference Include="Vortice.MediaFoundation" />

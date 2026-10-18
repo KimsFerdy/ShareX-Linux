@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+#if WINDOWS
 using ShareX.HelpersLib;
 using Windows.Globalization;
 using Windows.Graphics.Imaging;
@@ -106,3 +107,156 @@ public static class OCRHelper
         return string.Join(singleLine ? " " : Environment.NewLine, lines);
     }
 }
+#else
+#nullable enable
+
+using ShareX.HelpersLib;
+using System.Diagnostics;
+using System.Globalization;
+using Bitmap = SkiaSharp.SKBitmap;
+using ImageFormat = SkiaSharp.SKEncodedImageFormat;
+
+namespace ShareX.Tools;
+
+/// <summary>OCR through the Tesseract command line tool.</summary>
+public static class OCRHelper
+{
+    private static readonly Dictionary<string, string> tesseractLanguageCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ar"] = "ara", ["bg"] = "bul", ["cs"] = "ces", ["da"] = "dan", ["de"] = "deu", ["el"] = "ell",
+        ["en"] = "eng", ["es"] = "spa", ["fa"] = "fas", ["fi"] = "fin", ["fr"] = "fra", ["he"] = "heb",
+        ["hi"] = "hin", ["hu"] = "hun", ["id"] = "ind", ["it"] = "ita", ["ja"] = "jpn", ["ko"] = "kor",
+        ["nb"] = "nor", ["nl"] = "nld", ["pl"] = "pol", ["pt"] = "por", ["ro"] = "ron", ["ru"] = "rus",
+        ["sk"] = "slk", ["sv"] = "swe", ["th"] = "tha", ["tr"] = "tur", ["uk"] = "ukr", ["vi"] = "vie",
+        ["zh-Hans"] = "chi_sim", ["zh-CN"] = "chi_sim", ["zh-Hant"] = "chi_tra", ["zh-TW"] = "chi_tra"
+    };
+
+    private static string? TesseractPath => LinuxEnvironment.FindExecutable("tesseract");
+
+    public static bool IsSupported => TesseractPath != null;
+
+    public static OCRLanguageOption[] AvailableLanguages
+    {
+        get
+        {
+            ThrowIfNotSupported();
+            return GetInstalledLanguages()
+                .Select(code => new OCRLanguageOption(GetDisplayName(code), code))
+                .ToArray();
+        }
+    }
+
+    public static void ThrowIfNotSupported()
+    {
+        if (!IsSupported)
+        {
+            throw new InvalidOperationException(Localization.Strings.OCRHelper_Requires_Tesseract);
+        }
+    }
+
+    public static async Task<string> OCR(Bitmap bitmap, string languageTag = "en", float scaleFactor = 1f,
+        bool singleLine = false)
+    {
+        ThrowIfNotSupported();
+        scaleFactor = Math.Max(scaleFactor, 1f);
+
+        return await Task.Run(async () =>
+        {
+            using Bitmap scaledBitmap = SkiaImageHelpers.ScaleImageFast(bitmap, scaleFactor);
+            return await OCRInternal(scaledBitmap, languageTag, singleLine);
+        });
+    }
+
+    private static async Task<string> OCRInternal(Bitmap bitmap, string languageTag, bool singleLine)
+    {
+        string language = ToTesseractLanguage(languageTag);
+        if (!GetInstalledLanguages().Contains(language, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(string.Format(Localization.Strings.OCRHelper_Language_unavailable, GetDisplayName(language)));
+        }
+
+        string imagePath = Path.Combine(Path.GetTempPath(), $"sharex-ocr-{Guid.NewGuid():N}.png");
+
+        try
+        {
+            using (FileStream fileStream = File.Create(imagePath))
+            {
+                bitmap.Save(fileStream, ImageFormat.Png);
+            }
+
+            string output = await RunTesseractAsync(imagePath, "-", "-l", language, "--psm", singleLine ? "7" : "3");
+            IEnumerable<string> lines = output.Replace("\r\n", "\n").Split('\n')
+                .Select(line => line.TrimEnd())
+                .Where(line => line.Length > 0);
+
+            return string.Join(singleLine ? " " : Environment.NewLine, lines);
+        }
+        finally
+        {
+            try { File.Delete(imagePath); } catch { }
+        }
+    }
+
+    private static string[] GetInstalledLanguages()
+    {
+        string output = RunTesseractAsync("--list-langs").GetAwaiter().GetResult();
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(line => !line.StartsWith("List of available languages", StringComparison.OrdinalIgnoreCase) && line != "osd")
+            .ToArray();
+    }
+
+    private static string ToTesseractLanguage(string languageTag)
+    {
+        if (tesseractLanguageCodes.TryGetValue(languageTag, out string? code)) return code;
+
+        int separator = languageTag.IndexOf('-');
+        if (separator > 0 && tesseractLanguageCodes.TryGetValue(languageTag[..separator], out code)) return code;
+
+        return languageTag;
+    }
+
+    private static string GetDisplayName(string tesseractCode)
+    {
+        string? languageTag = tesseractLanguageCodes.FirstOrDefault(x => x.Value.Equals(tesseractCode, StringComparison.OrdinalIgnoreCase)).Key;
+        if (languageTag != null)
+        {
+            try
+            {
+                return CultureInfo.GetCultureInfo(languageTag).DisplayName;
+            }
+            catch (CultureNotFoundException)
+            {
+            }
+        }
+
+        return tesseractCode;
+    }
+
+    private static async Task<string> RunTesseractAsync(params string[] arguments)
+    {
+        ProcessStartInfo startInfo = new(TesseractPath!)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        foreach (string argument in arguments) startInfo.ArgumentList.Add(argument);
+
+        using Process process = Process.Start(startInfo)!;
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> errorTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        string output = await outputTask;
+        string error = await errorTask;
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(error.Trim());
+        }
+
+        // tesseract --list-langs writes to stderr on older versions.
+        return string.IsNullOrWhiteSpace(output) ? error : output;
+    }
+}
+#endif

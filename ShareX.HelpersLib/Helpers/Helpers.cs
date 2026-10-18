@@ -384,9 +384,18 @@ namespace ShareX.HelpersLib
                 Task.Run(() =>
                 {
                     using (stream)
-                    using (SoundPlayer soundPlayer = new SoundPlayer(stream))
                     {
-                        soundPlayer.Play();
+                        if (OperatingSystem.IsWindows())
+                        {
+                            using (SoundPlayer soundPlayer = new SoundPlayer(stream))
+                            {
+                                soundPlayer.Play();
+                            }
+                        }
+                        else
+                        {
+                            LinuxSoundPlayer.PlaySync(stream);
+                        }
                     }
                 });
             }
@@ -399,9 +408,18 @@ namespace ShareX.HelpersLib
                 Task.Run(() =>
                 {
                     using (stream)
-                    using (SoundPlayer soundPlayer = new SoundPlayer(stream))
                     {
-                        soundPlayer.PlaySync();
+                        if (OperatingSystem.IsWindows())
+                        {
+                            using (SoundPlayer soundPlayer = new SoundPlayer(stream))
+                            {
+                                soundPlayer.PlaySync();
+                            }
+                        }
+                        else
+                        {
+                            LinuxSoundPlayer.PlaySync(stream);
+                        }
                     }
                 });
             }
@@ -413,9 +431,16 @@ namespace ShareX.HelpersLib
             {
                 Task.Run(() =>
                 {
-                    using (SoundPlayer soundPlayer = new SoundPlayer(filePath))
+                    if (OperatingSystem.IsWindows())
                     {
-                        soundPlayer.PlaySync();
+                        using (SoundPlayer soundPlayer = new SoundPlayer(filePath))
+                        {
+                            soundPlayer.PlaySync();
+                        }
+                    }
+                    else
+                    {
+                        LinuxSoundPlayer.PlaySync(filePath);
                     }
                 });
             }

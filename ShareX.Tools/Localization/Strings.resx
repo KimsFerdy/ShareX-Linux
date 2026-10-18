@@ -1607,6 +1607,9 @@
   <data name="OCRHelper_Requires_Windows_version" xml:space="preserve">
     <value>Optical character recognition is only available with Windows version {0} or newer.</value>
   </data>
+  <data name="OCRHelper_Requires_Tesseract" xml:space="preserve">
+    <value>Optical character recognition requires Tesseract. Install the "tesseract-ocr" package and the language data you need, then try again.</value>
+  </data>
   <data name="OCROptions_Bing" xml:space="preserve">
     <value>Bing</value>
   </data>
