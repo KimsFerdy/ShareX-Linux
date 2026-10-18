@@ -365,6 +365,19 @@ public partial class FFmpegOptionsWindow : Window
         Exception? discoveryError = null;
         string ffmpegPath = Options.FFmpeg.FFmpegPath;
 
+#if LINUX
+        await Task.Run(() =>
+        {
+            try
+            {
+                devices = GetLinuxDevices();
+            }
+            catch (Exception ex)
+            {
+                discoveryError = ex;
+            }
+        });
+#else
         if (File.Exists(ffmpegPath))
         {
             await Task.Run(() =>
@@ -380,6 +393,7 @@ public partial class FFmpegOptionsWindow : Window
                 }
             });
         }
+#endif
 
         if (_closed)
         {
@@ -387,23 +401,34 @@ public partial class FFmpegOptionsWindow : Window
         }
 
         FFmpegCaptureDevice noSource = new(FFmpegCaptureDevice.None.Value, Localization.Strings.FFmpegOptionsWindow_None);
-        List<FFmpegCaptureDevice> videoSources =
-        [
-            noSource,
-            new(FFmpegCaptureDevice.GDIGrab.Value, Localization.Strings.FFmpegOptionsWindow_Source_GDI)
-        ];
+        List<FFmpegCaptureDevice> videoSources = [noSource];
+        List<FFmpegCaptureDevice> audioSources = [noSource];
 
-        if (Helpers.IsWindows10OrGreater())
+        if (OperatingSystem.IsWindows())
         {
-            videoSources.Add(new(FFmpegCaptureDevice.DDAGrab.Value, Localization.Strings.FFmpegOptionsWindow_Source_DDA));
+            videoSources.Add(new(FFmpegCaptureDevice.GDIGrab.Value, Localization.Strings.FFmpegOptionsWindow_Source_GDI));
+
+            if (Helpers.IsWindows10OrGreater())
+            {
+                videoSources.Add(new(FFmpegCaptureDevice.DDAGrab.Value, Localization.Strings.FFmpegOptionsWindow_Source_DDA));
+            }
+        }
+        else
+        {
+            videoSources.Add(new(FFmpegCaptureDevice.X11Grab.Value, Localization.Strings.FFmpegOptionsWindow_Source_X11));
+            audioSources.Add(new(FFmpegCaptureDevice.PulseDefaultMonitor.Value, Localization.Strings.FFmpegOptionsWindow_Source_SystemAudio));
+            audioSources.Add(new(FFmpegCaptureDevice.PulseDefaultSource.Value, Localization.Strings.FFmpegOptionsWindow_Source_DefaultMicrophone));
         }
 
-        List<FFmpegCaptureDevice> audioSources = [noSource];
+        int builtInVideoSourceCount = videoSources.Count;
+        int builtInAudioSourceCount = audioSources.Count;
 
         if (devices != null)
         {
-            videoSources.AddRange(devices.VideoDevices.Select(x => new FFmpegCaptureDevice(x, $"dshow ({x})")));
-            audioSources.AddRange(devices.AudioDevices.Select(x => new FFmpegCaptureDevice(x, $"dshow ({x})")));
+            string videoPrefix = OperatingSystem.IsWindows() ? "dshow" : "v4l2";
+            string audioPrefix = OperatingSystem.IsWindows() ? "dshow" : "pulse";
+            videoSources.AddRange(devices.VideoDevices.Select(x => new FFmpegCaptureDevice(x, $"{videoPrefix} ({x})")));
+            audioSources.AddRange(devices.AudioDevices.Select(x => new FFmpegCaptureDevice(x, $"{audioPrefix} ({x})")));
         }
 
         FFmpegOptions options = Options.FFmpeg;
@@ -413,12 +438,16 @@ public partial class FFmpegOptionsWindow : Window
         }
         else if (!videoSources.Any(x => EqualsSource(x, options.VideoSource)))
         {
-            options.VideoSource = FFmpegCaptureDevice.GDIGrab.Value;
+            options.VideoSource = FFmpegCaptureDevice.DefaultVideoSource.Value;
         }
 
         if (selectRecorderDevices && audioSources.Any(x => EqualsSource(x, FFmpegCaptureDevice.VirtualAudioCapturer.Value)))
         {
             options.AudioSource = FFmpegCaptureDevice.VirtualAudioCapturer.Value;
+        }
+        else if (!OperatingSystem.IsWindows() && EqualsSource(FFmpegCaptureDevice.VirtualAudioCapturer, options.AudioSource))
+        {
+            options.AudioSource = FFmpegCaptureDevice.PulseDefaultMonitor.Value;
         }
         else if (!audioSources.Any(x => EqualsSource(x, options.AudioSource)))
         {
@@ -433,7 +462,7 @@ public partial class FFmpegOptionsWindow : Window
         AudioSourceComboBox.SelectedItem = audioSources.First(x => EqualsSource(x, options.AudioSource));
         _settingsLoaded = wasLoaded;
 
-        if (!File.Exists(ffmpegPath))
+        if (OperatingSystem.IsWindows() && !File.Exists(ffmpegPath))
         {
             DeviceStatusTextBlock.Text = string.Format(Localization.Strings.FFmpegOptionsWindow_FFmpeg_not_found, ffmpegPath);
         }
@@ -444,8 +473,8 @@ public partial class FFmpegOptionsWindow : Window
         }
         else
         {
-            int deviceCount = Math.Max(0, videoSources.Count - (Helpers.IsWindows10OrGreater() ? 3 : 2)) +
-                              Math.Max(0, audioSources.Count - 1);
+            int deviceCount = Math.Max(0, videoSources.Count - builtInVideoSourceCount) +
+                              Math.Max(0, audioSources.Count - builtInAudioSourceCount);
             DeviceStatusTextBlock.Text = deviceCount switch
             {
                 0 => Localization.Strings.FFmpegOptionsWindow_No_devices_found,
@@ -597,6 +626,18 @@ public partial class FFmpegOptionsWindow : Window
         ResetConfirmationPanel.IsVisible = show;
     }
 
+#if LINUX
+    /// <summary>Video4Linux cameras and PulseAudio sources, by the names FFmpeg's v4l2 and pulse inputs accept.</summary>
+    private static DirectShowDevices GetLinuxDevices()
+    {
+        DirectShowDevices devices = new();
+        devices.VideoDevices.AddRange(ShareX.ScreenRecordingLib.CameraCaptureDevices.GetCameras().Select(x => x.Id));
+        devices.AudioDevices.AddRange(ShareX.ScreenRecordingLib.AudioCaptureDevices.GetSystemAudioDevices().Select(x => x.Id));
+        devices.AudioDevices.AddRange(ShareX.ScreenRecordingLib.AudioCaptureDevices.GetMicrophones().Select(x => x.Id));
+        return devices;
+    }
+
+#endif
     private static bool EqualsSource(FFmpegCaptureDevice device, string? value)
     {
         return device.Value.Equals(value ?? string.Empty, StringComparison.OrdinalIgnoreCase);

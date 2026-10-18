@@ -114,6 +114,15 @@ namespace ShareX.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to FFmpeg is required for this feature. Install it with your package manager, for example &quot;sudo apt install ffmpeg&quot;, or set a custom FFmpeg path in the FFmpeg options..
+        /// </summary>
+        public static string FFmpegIsNotInstalledLinux {
+            get {
+                return ResourceManager.GetString("FFmpegIsNotInstalledLinux", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to About....
         /// </summary>
         public static string MainMenuBuilder_About {

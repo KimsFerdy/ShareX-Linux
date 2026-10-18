@@ -33,7 +33,7 @@ namespace ShareX.ScreenCaptureLib
         // General
         public bool OverrideCLIPath { get; set; } = false;
         public string CLIPath { get; set; } = "";
-        public string VideoSource { get; set; } = FFmpegCaptureDevice.GDIGrab.Value;
+        public string VideoSource { get; set; } = FFmpegCaptureDevice.DefaultVideoSource.Value;
         public string AudioSource { get; set; } = FFmpegCaptureDevice.None.Value;
         public FFmpegVideoCodec VideoCodec { get; set; } = FFmpegVideoCodec.libx264;
         public FFmpegAudioCodec AudioCodec { get; set; } = FFmpegAudioCodec.libvoaacenc;
@@ -73,6 +73,12 @@ namespace ShareX.ScreenCaptureLib
                 if (OverrideCLIPath && !string.IsNullOrEmpty(CLIPath))
                 {
                     return FileHelpers.GetAbsolutePath(CLIPath);
+                }
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // Linux uses the distribution's FFmpeg package.
+                    return LinuxEnvironment.FindExecutable("ffmpeg") ?? "/usr/bin/ffmpeg";
                 }
 
                 return FileHelpers.GetAbsolutePath("ffmpeg.exe");

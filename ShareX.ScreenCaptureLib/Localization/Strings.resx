@@ -390,9 +390,18 @@
     <value>Desktop capture (Desktop Duplication API)</value>
     <comment>Desktop capture using the Windows Desktop Duplication API. Preserve the API name; translate the surrounding label.</comment>
   </data>
+  <data name="FFmpegOptionsWindow_Source_DefaultMicrophone" xml:space="preserve">
+    <value>Microphone (default input)</value>
+  </data>
   <data name="FFmpegOptionsWindow_Source_GDI" xml:space="preserve">
     <value>Desktop capture (GDI)</value>
     <comment>Desktop capture using the Windows Graphics Device Interface. Keep GDI unchanged.</comment>
+  </data>
+  <data name="FFmpegOptionsWindow_Source_SystemAudio" xml:space="preserve">
+    <value>System audio (default output)</value>
+  </data>
+  <data name="FFmpegOptionsWindow_Source_X11" xml:space="preserve">
+    <value>Desktop capture (X11)</value>
   </data>
   <data name="FFmpegOptionsWindow_Sources" xml:space="preserve">
     <value>Sources</value>

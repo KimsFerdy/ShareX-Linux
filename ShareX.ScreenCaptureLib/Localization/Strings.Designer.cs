@@ -527,5 +527,14 @@ namespace ShareX.ScreenCaptureLib.Localization {
         public static string FFmpegOptionsWindow_Source_DDA {
             get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_DDA", resourceCulture); }
         }
+        public static string FFmpegOptionsWindow_Source_X11 {
+            get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_X11", resourceCulture); }
+        }
+        public static string FFmpegOptionsWindow_Source_SystemAudio {
+            get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_SystemAudio", resourceCulture); }
+        }
+        public static string FFmpegOptionsWindow_Source_DefaultMicrophone {
+            get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_DefaultMicrophone", resourceCulture); }
+        }
     }
 }

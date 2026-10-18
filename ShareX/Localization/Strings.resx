@@ -1210,6 +1210,9 @@
   <data name="FFmpegIsMissing" xml:space="preserve">
     <value>FFmpeg is missing</value>
   </data>
+  <data name="FFmpegIsNotInstalledLinux" xml:space="preserve">
+    <value>FFmpeg is required for this feature. Install it with your package manager, for example "sudo apt install ffmpeg", or set a custom FFmpeg path in the FFmpeg options.</value>
+  </data>
   <data name="FFmpegOnlySupports64BitOperatingSystems" xml:space="preserve">
     <value>FFmpeg that comes with ShareX only supports 64-bit operating systems.</value>
   </data>

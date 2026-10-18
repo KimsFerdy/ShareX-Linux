@@ -2159,6 +2159,17 @@ namespace ShareX
 
         public static bool CheckFFmpeg(TaskSettings taskSettings)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                if (File.Exists(taskSettings.CaptureSettings.FFmpegOptions.FFmpegPath))
+                {
+                    return true;
+                }
+
+                MessageBox.Show(Strings.FFmpegIsNotInstalledLinux, "ShareX - " + Strings.FFmpegIsMissing, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
             if (!Environment.Is64BitOperatingSystem && !taskSettings.CaptureSettings.FFmpegOptions.OverrideCLIPath)
             {
                 MessageBox.Show(Strings.FFmpegOnlySupports64BitOperatingSystems,

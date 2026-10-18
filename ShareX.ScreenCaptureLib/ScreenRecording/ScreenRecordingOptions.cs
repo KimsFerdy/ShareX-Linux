@@ -93,7 +93,11 @@ namespace ShareX.ScreenCaptureLib
 
             string framerate = isCustom ? "$fps$" : FPS.ToString();
 
-            if (IsRecording)
+            if (IsRecording && !OperatingSystem.IsWindows())
+            {
+                AppendLinuxInputs(args, framerate, isCustom);
+            }
+            else if (IsRecording)
             {
                 if (FFmpeg.IsVideoSourceSelected)
                 {
@@ -335,6 +339,48 @@ namespace ShareX.ScreenCaptureLib
             args.Append($"\"{output}\"");
 
             return args.ToString();
+        }
+
+        private void AppendLinuxInputs(StringBuilder args, string framerate, bool isCustom)
+        {
+            if (FFmpeg.IsVideoSourceSelected)
+            {
+                if (FFmpeg.VideoSource.StartsWith("/dev/video", StringComparison.Ordinal))
+                {
+                    // https://ffmpeg.org/ffmpeg-devices.html#video4linux2_002c-v4l2
+                    args.Append("-f v4l2 -thread_queue_size 1024 ");
+                    args.Append($"-framerate {framerate} ");
+                    args.Append($"-i {Helpers.EscapeCLIText(FFmpeg.VideoSource)} ");
+                }
+                else
+                {
+                    // Screen sources from Windows settings, such as gdigrab, are recorded with x11grab.
+                    // https://ffmpeg.org/ffmpeg-devices.html#x11grab
+                    string x = isCustom ? "$area_x$" : CaptureArea.X.ToString();
+                    string y = isCustom ? "$area_y$" : CaptureArea.Y.ToString();
+                    string width = isCustom ? "$area_width$" : CaptureArea.Width.ToString();
+                    string height = isCustom ? "$area_height$" : CaptureArea.Height.ToString();
+                    string cursor = isCustom ? "$cursor$" : DrawCursor ? "1" : "0";
+                    string display = Environment.GetEnvironmentVariable("DISPLAY");
+                    if (string.IsNullOrEmpty(display)) display = ":0";
+
+                    args.Append("-f x11grab -thread_queue_size 1024 ");
+                    args.Append($"-framerate {framerate} ");
+                    args.Append($"-video_size {width}x{height} ");
+                    args.Append($"-draw_mouse {cursor} ");
+                    args.Append($"-i {display}+{x},{y} ");
+                }
+            }
+
+            if (FFmpeg.IsAudioSourceSelected)
+            {
+                // https://ffmpeg.org/ffmpeg-devices.html#pulse
+                string audioSource = FFmpeg.AudioSource.Equals(FFmpegCaptureDevice.VirtualAudioCapturer.Value, StringComparison.OrdinalIgnoreCase) ?
+                    FFmpegCaptureDevice.PulseDefaultMonitor.Value : FFmpeg.AudioSource;
+
+                args.Append("-f pulse -thread_queue_size 1024 ");
+                args.Append($"-i {Helpers.EscapeCLIText(audioSource)} ");
+            }
         }
 
         private void AppendInputDevice(StringBuilder args, string inputDevice, bool audioSource)

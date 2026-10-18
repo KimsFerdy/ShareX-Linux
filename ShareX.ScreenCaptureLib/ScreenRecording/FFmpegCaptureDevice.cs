@@ -23,6 +23,8 @@
 
 #endregion License Information (GPL v3)
 
+using System;
+
 namespace ShareX.ScreenCaptureLib
 {
     public class FFmpegCaptureDevice
@@ -41,6 +43,12 @@ namespace ShareX.ScreenCaptureLib
         public static FFmpegCaptureDevice DDAGrab { get; } = new FFmpegCaptureDevice("ddagrab", "ddagrab (Desktop Duplication API)");
         public static FFmpegCaptureDevice ScreenCaptureRecorder { get; } = new FFmpegCaptureDevice("screen-capture-recorder", "dshow (screen-capture-recorder)");
         public static FFmpegCaptureDevice VirtualAudioCapturer { get; } = new FFmpegCaptureDevice("virtual-audio-capturer", "dshow (virtual-audio-capturer)");
+        public static FFmpegCaptureDevice X11Grab { get; } = new FFmpegCaptureDevice("x11grab", "x11grab (X11)");
+        // PulseAudio and PipeWire aliases for the monitor of the default output and the default input.
+        public static FFmpegCaptureDevice PulseDefaultMonitor { get; } = new FFmpegCaptureDevice("@DEFAULT_MONITOR@", "pulse (system audio)");
+        public static FFmpegCaptureDevice PulseDefaultSource { get; } = new FFmpegCaptureDevice("@DEFAULT_SOURCE@", "pulse (default microphone)");
+
+        public static FFmpegCaptureDevice DefaultVideoSource => OperatingSystem.IsWindows() ? GDIGrab : X11Grab;
 
         public override string ToString()
         {

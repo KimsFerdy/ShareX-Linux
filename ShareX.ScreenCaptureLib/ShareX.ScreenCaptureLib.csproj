@@ -12,6 +12,10 @@
     <ProjectReference Include="..\ShareX.HelpersLib\ShareX.HelpersLib.csproj" />
     <ProjectReference Include="..\ShareX.ImageEditor\ShareX.ImageEditor.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(ShareXTargetOS)' != 'windows'">
+    <!-- PulseAudio and Video4Linux device lists for the FFmpeg recorder. -->
+    <ProjectReference Include="..\ShareX.ScreenRecordingLib\ShareX.ScreenRecordingLib.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Localization\Strings.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
