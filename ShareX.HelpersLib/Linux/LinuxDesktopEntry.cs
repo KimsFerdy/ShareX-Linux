@@ -39,43 +39,90 @@ public static class LinuxDesktopEntry
 
     public static string ApplicationsFolder => Path.Combine(LinuxEnvironment.DataHome, "applications");
 
-    public static void Write(string path, string name, string targetPath, string arguments = "", string? comment = null, string? iconPath = null)
+    public static void Write(string path, string name, string targetPath, string arguments = "", string? comment = null, string? iconPath = null,
+        IReadOnlyDictionary<string, string>? environment = null, bool autostart = false)
     {
+        StringBuilder exec = new();
+        if (environment is { Count: > 0 })
+        {
+            exec.Append("env");
+            foreach (KeyValuePair<string, string> variable in environment)
+            {
+                exec.Append(' ').Append(variable.Key).Append('=').Append(QuoteExecArgument(variable.Value));
+            }
+            exec.Append(' ');
+        }
+        exec.Append(QuoteExecArgument(targetPath));
+        if (!string.IsNullOrEmpty(arguments)) exec.Append(' ').Append(arguments);
+
         StringBuilder sb = new();
         sb.AppendLine("[Desktop Entry]");
         sb.AppendLine("Type=Application");
         sb.AppendLine("Name=" + name);
         if (!string.IsNullOrEmpty(comment)) sb.AppendLine("Comment=" + comment);
-        sb.AppendLine("Exec=" + QuoteExecArgument(targetPath) + (string.IsNullOrEmpty(arguments) ? "" : " " + arguments));
+        sb.AppendLine("Exec=" + exec);
         sb.AppendLine("Path=" + Path.GetDirectoryName(targetPath));
         if (!string.IsNullOrEmpty(iconPath)) sb.AppendLine("Icon=" + iconPath);
         sb.AppendLine("Terminal=false");
         sb.AppendLine("Categories=Graphics;Utility;");
+        if (autostart) sb.AppendLine("X-GNOME-Autostart-enabled=true");
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, sb.ToString());
     }
 
-    /// <summary>Returns the program path from the Exec key, without its arguments.</summary>
+    /// <summary>Returns the program path from the Exec key, without an env prefix or the program's arguments.</summary>
     public static string? GetTargetPath(string path)
     {
         string? exec = GetValue(path, "Exec");
         if (string.IsNullOrEmpty(exec)) return null;
 
-        if (exec.StartsWith('"'))
+        List<string> words = SplitExec(exec);
+        int index = 0;
+        if (words.Count > 0 && words[0] == "env")
         {
-            StringBuilder sb = new();
-            for (int i = 1; i < exec.Length; i++)
-            {
-                if (exec[i] == '\\' && i + 1 < exec.Length) sb.Append(exec[++i]);
-                else if (exec[i] == '"') break;
-                else sb.Append(exec[i]);
-            }
-            return sb.ToString();
+            index = 1;
+            while (index < words.Count && words[index].Contains('=')) index++;
         }
 
-        int space = exec.IndexOf(' ');
-        return space < 0 ? exec : exec[..space];
+        return index < words.Count ? words[index] : null;
+    }
+
+    /// <summary>Splits an Exec value into words, following the desktop entry quoting rules.</summary>
+    private static List<string> SplitExec(string exec)
+    {
+        List<string> words = [];
+        StringBuilder word = new();
+        bool quoted = false, inWord = false;
+
+        for (int i = 0; i < exec.Length; i++)
+        {
+            char c = exec[i];
+            if (quoted)
+            {
+                if (c == '\\' && i + 1 < exec.Length) word.Append(exec[++i]);
+                else if (c == '"') quoted = false;
+                else word.Append(c);
+            }
+            else if (c == '"')
+            {
+                quoted = inWord = true;
+            }
+            else if (c == ' ')
+            {
+                if (inWord) words.Add(word.ToString());
+                word.Clear();
+                inWord = false;
+            }
+            else
+            {
+                word.Append(c);
+                inWord = true;
+            }
+        }
+
+        if (inWord) words.Add(word.ToString());
+        return words;
     }
 
     /// <summary>True when the desktop environment's startup settings have turned the entry off.</summary>

@@ -27,7 +27,9 @@ using Microsoft.Win32;
 using ShareX.HelpersLib;
 using ShareX.Localization;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 
 #if MicrosoftStore
 using Windows.ApplicationModel;
@@ -136,6 +138,29 @@ namespace ShareX
             return LinuxDesktopEntry.IsDisabled(LinuxAutostartPath) ? StartupState.DisabledByUser : StartupState.Enabled;
         }
 
+        /// <summary>
+        /// A build that uses a shared .NET runtime, such as a development build, finds the runtime through DOTNET_ROOT,
+        /// which the login session does not set. Self-contained builds, such as the .deb package, need nothing.
+        /// </summary>
+        private static Dictionary<string, string> GetLinuxAutostartEnvironment()
+        {
+            Dictionary<string, string> environment = new();
+            string runtimeDirectory = Path.GetFullPath(RuntimeEnvironment.GetRuntimeDirectory());
+            string appDirectory = Path.GetFullPath(AppContext.BaseDirectory);
+
+            if (!runtimeDirectory.StartsWith(appDirectory, StringComparison.Ordinal))
+            {
+                // The runtime is in <dotnet root>/shared/Microsoft.NETCore.App/<version>/.
+                DirectoryInfo dotnetRoot = new DirectoryInfo(runtimeDirectory.TrimEnd(Path.DirectorySeparatorChar)).Parent?.Parent?.Parent;
+                if (dotnetRoot != null)
+                {
+                    environment["DOTNET_ROOT"] = dotnetRoot.FullName;
+                }
+            }
+
+            return environment;
+        }
+
         private static void SetLinuxAutostartState(StartupState value)
         {
             try
@@ -143,7 +168,7 @@ namespace ShareX
                 if (value == StartupState.Enabled)
                 {
                     LinuxDesktopEntry.Write(LinuxAutostartPath, "ShareX", StartupTargetPath, "-silent",
-                        "Screen capture, file sharing and productivity tool");
+                        "Screen capture, file sharing and productivity tool", "sharex", GetLinuxAutostartEnvironment(), autostart: true);
                 }
                 else if (value == StartupState.Disabled)
                 {
