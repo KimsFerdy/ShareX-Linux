@@ -42,6 +42,33 @@ public static class LinuxEnvironment
 
     public static string DataHome => GetXdgDirectory("XDG_DATA_HOME", Path.Combine(".local", "share"));
 
+    /// <summary>The distribution's PRETTY_NAME from os-release, such as "Linux Mint 22.3".</summary>
+    public static string? GetDistributionName()
+    {
+        foreach (string path in new[] { "/etc/os-release", "/usr/lib/os-release" })
+        {
+            try
+            {
+                foreach (string line in File.ReadLines(path))
+                {
+                    if (line.StartsWith("PRETTY_NAME=", StringComparison.Ordinal))
+                    {
+                        string value = line["PRETTY_NAME=".Length..].Trim().Trim('"');
+                        if (value.Length > 0) return value;
+                    }
+                }
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+
+        return null;
+    }
+
     public static string? FindExecutable(string name)
     {
         string? pathVariable = Environment.GetEnvironmentVariable("PATH");

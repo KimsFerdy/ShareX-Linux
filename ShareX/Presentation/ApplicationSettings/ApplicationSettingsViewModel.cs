@@ -154,10 +154,14 @@ public sealed class ApplicationSettingsViewModel : INotifyPropertyChanged, IDisp
 #if MicrosoftStore
             return false;
 #else
-            return true;
+            return OperatingSystem.IsWindows();
 #endif
         }
     }
+
+    public bool IsWindows => OperatingSystem.IsWindows();
+
+    public string StartupSectionTitle => OperatingSystem.IsWindows() ? Strings.ApplicationSettingsWindow_Windows : Strings.ApplicationSettingsWindow_Startup;
 
     public bool SteamIntegrationVisible
     {
@@ -908,7 +912,7 @@ public sealed class ApplicationSettingsViewModel : INotifyPropertyChanged, IDisp
 
     private void RefreshStartWithWindows()
     {
-        StartWithWindowsText = Strings.ApplicationSettingsForm_cbStartWithWindows_Text;
+        StartWithWindowsText = StartupManager.StartupText;
         StartWithWindowsEnabled = false;
 
         try
@@ -919,7 +923,7 @@ public sealed class ApplicationSettingsViewModel : INotifyPropertyChanged, IDisp
 
             if (state == StartupState.DisabledByUser)
             {
-                StartWithWindowsText = Strings.ApplicationSettingsForm_cbStartWithWindows_DisabledByUser_Text;
+                StartWithWindowsText = StartupManager.DisabledByUserText;
             }
             else if (state == StartupState.DisabledByPolicy)
             {

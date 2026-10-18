@@ -45,7 +45,7 @@ public sealed class StartScreenViewModel : INotifyPropertyChanged, IDisposable
 {
     private bool _startWithWindows;
     private bool _startWithWindowsEnabled;
-    private string _startWithWindowsText = Strings.ApplicationSettingsForm_cbStartWithWindows_Text;
+    private string _startWithWindowsText = StartupManager.StartupText;
 
     private ApplicationConfig Settings => ApplicationState.Settings;
 
@@ -55,7 +55,7 @@ public sealed class StartScreenViewModel : INotifyPropertyChanged, IDisposable
     public string CaptureFeature => Strings.MainMenuBuilder_Capture;
     public string AutomateFeature => Strings.MainMenuBuilder_Workflows;
     public string ShareFeature => Strings.MainMenuBuilder_Tools;
-    public string PlatformNote => Strings.StartScreen_PlatformNote;
+    public string PlatformNote => OperatingSystem.IsWindows() ? Strings.StartScreen_PlatformNote : Strings.StartScreen_PlatformNote_Linux;
     public string PersonalizeTitle => Strings.StartScreen_PersonalizeTitle;
     public string PersonalizeSubtitle => Strings.StartScreen_PersonalizeSubtitle;
     public string SettingsNote => Strings.StartScreen_SettingsNote;
@@ -185,7 +185,7 @@ public sealed class StartScreenViewModel : INotifyPropertyChanged, IDisposable
 
     private void RefreshStartWithWindows()
     {
-        _startWithWindowsText = Strings.ApplicationSettingsForm_cbStartWithWindows_Text;
+        _startWithWindowsText = StartupManager.StartupText;
         _startWithWindowsEnabled = false;
 
         try
@@ -195,7 +195,7 @@ public sealed class StartScreenViewModel : INotifyPropertyChanged, IDisposable
 
             if (state == StartupState.DisabledByUser)
             {
-                _startWithWindowsText = Strings.ApplicationSettingsForm_cbStartWithWindows_DisabledByUser_Text;
+                _startWithWindowsText = StartupManager.DisabledByUserText;
             }
             else if (state == StartupState.DisabledByPolicy)
             {

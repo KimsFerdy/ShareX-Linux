@@ -25,7 +25,9 @@
 
 using Microsoft.Win32;
 using ShareX.HelpersLib;
+using ShareX.Localization;
 using System;
+using System.IO;
 
 #if MicrosoftStore
 using Windows.ApplicationModel;
@@ -52,6 +54,12 @@ namespace ShareX
             }
         }
 
+        public static string StartupText => OperatingSystem.IsWindows() ?
+            Strings.ApplicationSettingsForm_cbStartWithWindows_Text : Strings.ApplicationSettingsForm_cbStartWithLinux_Text;
+
+        public static string DisabledByUserText => OperatingSystem.IsWindows() ?
+            Strings.ApplicationSettingsForm_cbStartWithWindows_DisabledByUser_Text : Strings.ApplicationSettingsForm_cbStartWithLinux_DisabledByUser_Text;
+
         public static StartupState State
         {
             get
@@ -59,6 +67,11 @@ namespace ShareX
 #if MicrosoftStore
                 return (StartupState)packageTask.State;
 #else
+                if (!OperatingSystem.IsWindows())
+                {
+                    return GetLinuxAutostartState();
+                }
+
                 if (ShortcutHelpers.CheckShortcut(Environment.SpecialFolder.Startup, "ShareX", StartupTargetPath))
                 {
                     if (Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder",
@@ -93,7 +106,11 @@ namespace ShareX
                     throw new NotSupportedException();
                 }
 #else
-                if (value == StartupState.Enabled || value == StartupState.Disabled)
+                if (!OperatingSystem.IsWindows())
+                {
+                    SetLinuxAutostartState(value);
+                }
+                else if (value == StartupState.Enabled || value == StartupState.Disabled)
                 {
                     ShortcutHelpers.SetShortcut(value == StartupState.Enabled, Environment.SpecialFolder.Startup, "ShareX", StartupTargetPath, "-silent");
                 }
@@ -102,6 +119,48 @@ namespace ShareX
                     throw new NotSupportedException();
                 }
 #endif
+            }
+        }
+
+        private static string LinuxAutostartPath => Path.Combine(LinuxDesktopEntry.AutostartFolder, "sharex.desktop");
+
+        private static StartupState GetLinuxAutostartState()
+        {
+            string targetPath = LinuxDesktopEntry.GetTargetPath(LinuxAutostartPath);
+
+            if (string.IsNullOrEmpty(targetPath) || !targetPath.Equals(StartupTargetPath, StringComparison.Ordinal))
+            {
+                return StartupState.Disabled;
+            }
+
+            return LinuxDesktopEntry.IsDisabled(LinuxAutostartPath) ? StartupState.DisabledByUser : StartupState.Enabled;
+        }
+
+        private static void SetLinuxAutostartState(StartupState value)
+        {
+            try
+            {
+                if (value == StartupState.Enabled)
+                {
+                    LinuxDesktopEntry.Write(LinuxAutostartPath, "ShareX", StartupTargetPath, "-silent",
+                        "Screen capture, file sharing and productivity tool");
+                }
+                else if (value == StartupState.Disabled)
+                {
+                    if (File.Exists(LinuxAutostartPath))
+                    {
+                        File.Delete(LinuxAutostartPath);
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException();
+                }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                DebugHelper.WriteException(e);
+                e.ShowError();
             }
         }
     }

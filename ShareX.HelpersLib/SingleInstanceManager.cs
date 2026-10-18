@@ -85,6 +85,25 @@ namespace ShareX.HelpersLib
             }
         }
 
+        private NamedPipeServerStream CreatePipeServer()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                // On Unix the pipe is a socket file that only the current user can access.
+                return new NamedPipeServerStream(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            }
+
+            PipeSecurity pipeSecurity = new PipeSecurity();
+
+            using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+            {
+                pipeSecurity.AddAccessRule(new PipeAccessRule(identity.User, PipeAccessRights.ReadWrite, AccessControlType.Allow));
+            }
+
+            return NamedPipeServerStreamAcl.Create(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 0, pipeSecurity);
+        }
+
         private async Task ListenForConnectionsAsync()
         {
             while (!cts.IsCancellationRequested)
@@ -93,14 +112,7 @@ namespace ShareX.HelpersLib
 
                 try
                 {
-                    PipeSecurity pipeSecurity = new PipeSecurity();
-
-                    using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
-                    {
-                        pipeSecurity.AddAccessRule(new PipeAccessRule(identity.User, PipeAccessRights.ReadWrite, AccessControlType.Allow));
-                    }
-
-                    using (NamedPipeServerStream namedPipeServer = NamedPipeServerStreamAcl.Create(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 0, pipeSecurity))
+                    using (NamedPipeServerStream namedPipeServer = CreatePipeServer())
                     {
                         namedPipeServerCreated = true;
 

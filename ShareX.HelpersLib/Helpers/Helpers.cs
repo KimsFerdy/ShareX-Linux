@@ -662,7 +662,9 @@ namespace ShareX.HelpersLib
 
         public static string GetOperatingSystemProductName(bool includeBit = false)
         {
-            string productName = RegistryHelpers.GetValueString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", RegistryHive.LocalMachine);
+            string productName = OperatingSystem.IsWindows() ?
+                RegistryHelpers.GetValueString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", RegistryHive.LocalMachine) :
+                LinuxEnvironment.GetDistributionName();
 
             if (string.IsNullOrEmpty(productName))
             {

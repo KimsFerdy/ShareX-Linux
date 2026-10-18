@@ -87,6 +87,33 @@ namespace ShareX.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Startup has been disabled in your desktop's startup applications settings.
+        /// </summary>
+        public static string ApplicationSettingsForm_cbStartWithLinux_DisabledByUser_Text {
+            get {
+                return ResourceManager.GetString("ApplicationSettingsForm_cbStartWithLinux_DisabledByUser_Text", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run ShareX when you log in.
+        /// </summary>
+        public static string ApplicationSettingsForm_cbStartWithLinux_Text {
+            get {
+                return ResourceManager.GetString("ApplicationSettingsForm_cbStartWithLinux_Text", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Startup.
+        /// </summary>
+        public static string ApplicationSettingsWindow_Startup {
+            get {
+                return ResourceManager.GetString("ApplicationSettingsWindow_Startup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to About....
         /// </summary>
         public static string MainMenuBuilder_About {
@@ -1499,6 +1526,15 @@ namespace ShareX.Localization {
         public static string MainWindow_Vertically {
             get {
                 return ResourceManager.GetString("MainWindow_Vertically", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open source • Running on Linux.
+        /// </summary>
+        public static string StartScreen_PlatformNote_Linux {
+            get {
+                return ResourceManager.GetString("StartScreen_PlatformNote_Linux", resourceCulture);
             }
         }
         

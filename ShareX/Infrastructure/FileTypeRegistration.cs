@@ -23,6 +23,8 @@
 
 #endregion License Information (GPL v3)
 
+using System;
+
 namespace ShareX;
 
 internal static class FileTypeRegistration
@@ -30,7 +32,8 @@ internal static class FileTypeRegistration
     internal static void RegisterMissingExtensions()
     {
 #if !MicrosoftStore
-        if (StartupOptions.Portable)
+        // Windows registers the .sxcu and .sxie file types through the registry.
+        if (StartupOptions.Portable || !OperatingSystem.IsWindows())
         {
             return;
         }

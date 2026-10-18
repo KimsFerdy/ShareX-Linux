@@ -238,6 +238,12 @@
   <data name="ApplicationSettingsForm_btnResetSettings_Click_WouldYouLikeToResetShareXSettings" xml:space="preserve">
     <value>Would you like to reset ShareX settings?</value>
   </data>
+  <data name="ApplicationSettingsForm_cbStartWithLinux_DisabledByUser_Text" xml:space="preserve">
+    <value>Startup has been disabled in your desktop's startup applications settings</value>
+  </data>
+  <data name="ApplicationSettingsForm_cbStartWithLinux_Text" xml:space="preserve">
+    <value>Run ShareX when you log in</value>
+  </data>
   <data name="ApplicationSettingsForm_cbStartWithWindows_DisabledByPolicy_Text" xml:space="preserve">
     <value>Startup has been disabled by your organization</value>
   </data>
@@ -663,6 +669,9 @@
   </data>
   <data name="ApplicationSettingsWindow_SimultaneousUploadLimitLabel" xml:space="preserve">
     <value>Simultaneous upload limit:</value>
+  </data>
+  <data name="ApplicationSettingsWindow_Startup" xml:space="preserve">
+    <value>Startup</value>
   </data>
   <data name="ApplicationSettingsWindow_Steam" xml:space="preserve">
     <value>Steam</value>
@@ -2090,6 +2099,9 @@ Do you want to abort the active screen recording?</value>
   </data>
   <data name="StartScreen_PlatformNote" xml:space="preserve">
     <value>Open source • Built for Windows</value>
+  </data>
+  <data name="StartScreen_PlatformNote_Linux" xml:space="preserve">
+    <value>Open source • Running on Linux</value>
   </data>
   <data name="StartScreen_SettingsNote" xml:space="preserve">
     <value>You can change these options anytime in Application settings.</value>
