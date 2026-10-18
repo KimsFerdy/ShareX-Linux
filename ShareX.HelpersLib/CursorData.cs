@@ -41,6 +41,8 @@ namespace ShareX.HelpersLib
         public Point DrawPosition => new Point(Position.X - Hotspot.X, Position.Y - Hotspot.Y);
         public bool IsVisible { get; private set; }
 
+        private SKBitmap x11Cursor;
+
         public CursorData()
         {
             UpdateCursorData();
@@ -51,6 +53,12 @@ namespace ShareX.HelpersLib
             Handle = IntPtr.Zero;
             Position = Point.Empty;
             IsVisible = false;
+
+            if (!OperatingSystem.IsWindows())
+            {
+                UpdateX11CursorData();
+                return;
+            }
 
             CursorInfo cursorInfo = new CursorInfo();
             cursorInfo.cbSize = Marshal.SizeOf(cursorInfo);
@@ -105,6 +113,24 @@ namespace ShareX.HelpersLib
             }
         }
 
+        private void UpdateX11CursorData()
+        {
+            x11Cursor?.Dispose();
+            x11Cursor = null;
+            SizeMultiplier = 1f;
+
+            X11CursorImage cursor = X11Desktop.GetCursorImage();
+
+            if (cursor != null)
+            {
+                x11Cursor = cursor.Image;
+                Position = cursor.Position;
+                Hotspot = cursor.Hotspot;
+                Size = new Size(cursor.Image.Width, cursor.Image.Height);
+                IsVisible = true;
+            }
+        }
+
         public static float GetCursorSizeMultiplier()
         {
             float sizeMultiplier = 1f;
@@ -145,9 +171,10 @@ namespace ShareX.HelpersLib
             canvas.DrawBitmap(cursor, position.X, position.Y);
         }
 
-        public SKBitmap ToBitmap() => WindowsImageInterop.FromIcon(Handle, Size);
+        public SKBitmap ToBitmap() => x11Cursor != null ? x11Cursor.Copy() : WindowsImageInterop.FromIcon(Handle, Size);
 
-        public SKBitmap ToBitmap(SKBitmap background, Point offset) => WindowsImageInterop.FromIcon(Handle, Size, background,
-            new Point(DrawPosition.X - offset.X, DrawPosition.Y - offset.Y));
+        // X11 cursors are true alpha images, so unlike Windows XOR cursors they do not depend on the background.
+        public SKBitmap ToBitmap(SKBitmap background, Point offset) => x11Cursor != null ? x11Cursor.Copy() :
+            WindowsImageInterop.FromIcon(Handle, Size, background, new Point(DrawPosition.X - offset.X, DrawPosition.Y - offset.Y));
     }
 }

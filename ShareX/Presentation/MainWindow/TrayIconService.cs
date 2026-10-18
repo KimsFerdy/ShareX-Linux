@@ -28,7 +28,9 @@
 using ShareX.AvaloniaUI.Integration;
 using ShareX.HelpersLib;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace ShareX;
 
@@ -50,6 +52,8 @@ internal sealed class DesktopTrayIconService : ITrayIconService
     private readonly Avalonia.Controls.TrayIcon? _avaloniaIcon;
     private readonly IDisposable? _avaloniaIconRegistration;
     private readonly Avalonia.Threading.DispatcherTimer _singleClickTimer;
+    private readonly Avalonia.Threading.DispatcherTimer? _menuRefreshTimer;
+    private string? _menuSignature;
     private int _leftClickCount;
     private bool _disposed;
     public event Action? RightButtonDown;
@@ -84,7 +88,13 @@ internal sealed class DesktopTrayIconService : ITrayIconService
         {
             _avaloniaIcon = new Avalonia.Controls.TrayIcon { Menu = new Avalonia.Controls.NativeMenu(), IsVisible = false };
             _avaloniaIcon.Clicked += OnAvaloniaClick;
-            _avaloniaIcon.Menu.Opening += (_, _) => BuildNativeMenu(_avaloniaIcon.Menu, new MainMenuBuilder(true).BuildTrayMenu());
+
+            // The D-Bus menu that Linux panels display is read without raising NativeMenu.Opening,
+            // so the whole tree is built ahead of time and rebuilt when its contents change.
+            RefreshExportedMenu();
+            _menuRefreshTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+            _menuRefreshTimer.Tick += OnMenuRefreshTimerTick;
+            _menuRefreshTimer.Start();
         }
         ToolTipText = text;
         SetIcon(icon);
@@ -153,6 +163,114 @@ internal sealed class DesktopTrayIconService : ITrayIconService
         }
     }
 
+    private void OnMenuRefreshTimerTick(object? sender, EventArgs e) => RefreshExportedMenu();
+
+    private void RefreshExportedMenu()
+    {
+        if (_avaloniaIcon?.Menu == null || _disposed) return;
+
+        ExportedMenuEntry[] entries;
+        try
+        {
+            entries = SnapshotEntries(new MainMenuBuilder(true).BuildTrayMenu());
+        }
+        catch (Exception e)
+        {
+            DebugHelper.WriteException(e, "Tray menu build failed.");
+            return;
+        }
+
+        string signature = string.Join("\n", entries.Select(x => x.Signature));
+        if (signature == _menuSignature) return;
+        _menuSignature = signature;
+
+        _avaloniaIcon.Menu.Items.Clear();
+        AddExportedEntries(_avaloniaIcon.Menu, entries);
+    }
+
+    private void AddExportedEntries(Avalonia.Controls.NativeMenu menu, IEnumerable<ExportedMenuEntry> entries)
+    {
+        foreach (ExportedMenuEntry exported in entries)
+        {
+            MainMenuEntry? entry = exported.Entry;
+            if (entry?.IsSeparator == true) { menu.Items.Add(new Avalonia.Controls.NativeMenuItemSeparator()); continue; }
+
+            Avalonia.Controls.NativeMenuItem item = new(exported.Header);
+            if (entry != null)
+            {
+                item.IsEnabled = entry.IsEnabled;
+                item.IsChecked = entry.IsChecked;
+            }
+
+            if (entry != null && entry.ToggleType != MainMenuToggleType.None)
+            {
+                item.ToggleType = entry.ToggleType == MainMenuToggleType.Radio ?
+                    Avalonia.Controls.MenuItemToggleType.Radio : Avalonia.Controls.MenuItemToggleType.CheckBox;
+            }
+
+            if (exported.Children != null)
+            {
+                item.Menu = new Avalonia.Controls.NativeMenu();
+                AddExportedEntries(item.Menu, exported.Children);
+            }
+            else
+            {
+                item.Click += async (_, _) =>
+                {
+                    if (entry?.ExecuteAsync != null) await entry.ExecuteAsync();
+                    _menuSignature = null;
+                    RefreshExportedMenu();
+                };
+            }
+
+            menu.Items.Add(item);
+        }
+    }
+
+    /// <summary>Evaluates every submenu once, so the tree can be compared and then exported without building it twice.</summary>
+    private static ExportedMenuEntry[] SnapshotEntries(IEnumerable<MainMenuEntry> entries)
+    {
+        List<ExportedMenuEntry> result = new();
+
+        foreach (MainMenuEntry entry in entries)
+        {
+            if (!entry.IsVisible) continue;
+            if (entry.IsSeparator) { result.Add(new ExportedMenuEntry(entry, "", null)); continue; }
+
+            ExportedMenuEntry[]? children = null;
+            try
+            {
+                if (entry.CreateChildren != null)
+                {
+                    children = SnapshotEntries(entry.CreateChildren());
+                }
+                else if (entry.CreateCategories != null)
+                {
+                    children = entry.CreateCategories()
+                        .Select(category => new ExportedMenuEntry(null, category.Header, SnapshotEntries(category.Entries)))
+                        .ToArray();
+                }
+            }
+            catch (Exception e)
+            {
+                DebugHelper.WriteException(e, $"Tray submenu \"{entry.Header}\" failed.");
+                children = [];
+            }
+
+            result.Add(new ExportedMenuEntry(entry, entry.Header, children));
+        }
+
+        return result.ToArray();
+    }
+
+    /// <summary>A menu entry with its submenu already evaluated. Entry is null for a tool category heading.</summary>
+    private sealed record ExportedMenuEntry(MainMenuEntry? Entry, string Header, ExportedMenuEntry[]? Children)
+    {
+        public string Signature =>
+            Entry?.IsSeparator == true ? "-" :
+            $"{Header}|{Entry?.IsEnabled}|{Entry?.IsChecked}" + (Children == null ? "" : "[" + string.Join(";", Children.Select(x => x.Signature)) + "]");
+    }
+
     private static void BuildNativeMenu(Avalonia.Controls.NativeMenu menu, System.Collections.Generic.IReadOnlyList<MainMenuEntry> entries)
     {
         menu.Items.Clear();
@@ -191,6 +309,11 @@ internal sealed class DesktopTrayIconService : ITrayIconService
         _disposed = true;
         _singleClickTimer.Stop();
         _singleClickTimer.Tick -= OnSingleClickTimerTick;
+        if (_menuRefreshTimer != null)
+        {
+            _menuRefreshTimer.Stop();
+            _menuRefreshTimer.Tick -= OnMenuRefreshTimerTick;
+        }
         if (_windowsIcon != null)
         {
             _windowsIcon.MouseDown -= OnMouseDown;

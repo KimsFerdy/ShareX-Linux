@@ -366,14 +366,26 @@ public static unsafe class X11Desktop
         return bitmap;
     }
 
-    /// <summary>Draws the current cursor image, which XFixes provides as premultiplied ARGB.</summary>
+    /// <summary>Draws the current cursor at its screen position, relative to the bitmap's offset on the screen.</summary>
     public static void DrawCursor(SKBitmap bitmap, Point offset)
     {
-        IntPtr c = Connection;
-        if (!InitializeXfixes(c)) return;
+        X11CursorImage? cursor = GetCursorImage();
+        if (cursor == null) return;
+
+        using (cursor.Image)
+        using (SKCanvas canvas = new(bitmap))
+        {
+            canvas.DrawBitmap(cursor.Image, cursor.DrawPosition.X - offset.X, cursor.DrawPosition.Y - offset.Y);
+        }
+    }
+
+    /// <summary>The current cursor image from XFixes, converted from premultiplied ARGB to unpremultiplied BGRA.</summary>
+    public static X11CursorImage? GetCursorImage()
+    {
+        if (!TryGetConnection(out IntPtr c) || !InitializeXfixes(c)) return null;
 
         byte* reply = XcbNative.XfixesGetCursorImageReply(c, XcbNative.XfixesGetCursorImage(c), null);
-        if (reply == null) return;
+        if (reply == null) return null;
 
         try
         {
@@ -383,13 +395,19 @@ public static unsafe class X11Desktop
             int height = *(ushort*)(reply + 14);
             int xHot = *(ushort*)(reply + 16);
             int yHot = *(ushort*)(reply + 18);
-            if (width == 0 || height == 0) return;
+            if (width == 0 || height == 0) return null;
 
-            using SKBitmap cursor = new(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul));
-            Buffer.MemoryCopy(XcbNative.XfixesGetCursorImageData(reply), (void*)cursor.GetPixels(), width * height * 4L, width * height * 4L);
+            SKImageInfo premultipliedInfo = new(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
+            using SKPixmap premultiplied = new(premultipliedInfo, (IntPtr)XcbNative.XfixesGetCursorImageData(reply), width * 4);
 
-            using SKCanvas canvas = new(bitmap);
-            canvas.DrawBitmap(cursor, x - xHot - offset.X, y - yHot - offset.Y);
+            SKBitmap image = new(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Unpremul));
+            if (!premultiplied.ReadPixels(image.Info, image.GetPixels(), image.RowBytes))
+            {
+                image.Dispose();
+                return null;
+            }
+
+            return new X11CursorImage(image, new Point(x, y), new Point(xHot, yHot));
         }
         finally
         {
@@ -479,4 +497,10 @@ public static unsafe class X11Desktop
     }
 
     #endregion Properties
+}
+
+/// <summary>A cursor image with its hotspot position on the screen and the hotspot offset within the image.</summary>
+public sealed record X11CursorImage(SKBitmap Image, Point Position, Point Hotspot)
+{
+    public Point DrawPosition => new(Position.X - Hotspot.X, Position.Y - Hotspot.Y);
 }
