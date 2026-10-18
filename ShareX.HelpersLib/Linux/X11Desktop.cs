@@ -247,8 +247,91 @@ public static unsafe class X11Desktop
         {
             rect = Rectangle.FromLTRB(rect.Left + (int)shadow[0], rect.Top + (int)shadow[2], rect.Right - (int)shadow[1], rect.Bottom - (int)shadow[3]);
         }
+        else if (frame.Length != 4 && !IsWindowMaximized(window))
+        {
+            // Some toolkits (Avalonia, Electron without GTK) draw their own frame inside a transparent margin without
+            // describing it, so the margin is measured from the window's own alpha channel instead.
+            rect = TrimTransparentMargins(window, rect);
+        }
 
         return rect;
+    }
+
+    private const int MaxTransparentMargin = 64;
+
+    /// <summary>Shrinks the rectangle past edge lines that are mostly transparent, such as shadows and resize borders.</summary>
+    private static Rectangle TrimTransparentMargins(IntPtr window, Rectangle rect)
+    {
+        if (GetWindowDepth(window) != 32 || rect.Width < 4 || rect.Height < 4) return rect;
+
+        int horizontalLimit = Math.Min(MaxTransparentMargin, rect.Width / 2);
+        int verticalLimit = Math.Min(MaxTransparentMargin, rect.Height / 2);
+
+        int left = MeasureMargin(window, new Rectangle(0, 0, horizontalLimit, rect.Height), vertical: true, fromEnd: false);
+        int right = MeasureMargin(window, new Rectangle(rect.Width - horizontalLimit, 0, horizontalLimit, rect.Height), vertical: true, fromEnd: true);
+        int top = MeasureMargin(window, new Rectangle(0, 0, rect.Width, verticalLimit), vertical: false, fromEnd: false);
+        int bottom = MeasureMargin(window, new Rectangle(0, rect.Height - verticalLimit, rect.Width, verticalLimit), vertical: false, fromEnd: true);
+
+        Rectangle trimmed = Rectangle.FromLTRB(rect.Left + left, rect.Top + top, rect.Right - right, rect.Bottom - bottom);
+        return trimmed.Width > 0 && trimmed.Height > 0 ? trimmed : rect;
+    }
+
+    /// <summary>
+    /// Counts the lines from the outer edge of the strip inward until one is mostly opaque. Soft shadows stay below the
+    /// threshold, while rounded corners only make a few pixels of the window's first line transparent.
+    /// </summary>
+    private static int MeasureMargin(IntPtr window, Rectangle strip, bool vertical, bool fromEnd)
+    {
+        IntPtr c = Connection;
+        byte* reply = XcbNative.GetImageReply(c, XcbNative.GetImage(c, XcbNative.ImageFormatZPixmap, (uint)window,
+            (short)strip.X, (short)strip.Y, (ushort)strip.Width, (ushort)strip.Height, uint.MaxValue), null);
+        if (reply == null) return 0;
+
+        try
+        {
+            if (reply[1] != 32 || XcbNative.GetImageDataLength(reply) < strip.Width * strip.Height * 4) return 0;
+
+            uint* pixels = (uint*)XcbNative.GetImageData(reply);
+            int lineCount = vertical ? strip.Width : strip.Height;
+            int lineLength = vertical ? strip.Height : strip.Width;
+
+            for (int i = 0; i < lineCount; i++)
+            {
+                int line = fromEnd ? lineCount - 1 - i : i;
+                int opaque = 0;
+
+                for (int j = 0; j < lineLength; j++)
+                {
+                    uint pixel = vertical ? pixels[j * strip.Width + line] : pixels[line * strip.Width + j];
+                    if (pixel >> 24 >= 128) opaque++;
+                }
+
+                if (opaque * 2 > lineLength) return i;
+            }
+
+            // No opaque line at all, so this is not a transparent margin; leave the rectangle alone.
+            return 0;
+        }
+        finally
+        {
+            XcbNative.Free(reply);
+        }
+    }
+
+    private static int GetWindowDepth(IntPtr window)
+    {
+        IntPtr c = Connection;
+        byte* reply = XcbNative.GetGeometryReply(c, XcbNative.GetGeometry(c, (uint)window), null);
+        if (reply == null) return 0;
+
+        try
+        {
+            return reply[1];
+        }
+        finally
+        {
+            XcbNative.Free(reply);
+        }
     }
 
     /// <summary>Asks the window manager to activate the window, as a pager would.</summary>
