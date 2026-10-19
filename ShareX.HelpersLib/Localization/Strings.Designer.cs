@@ -1349,5 +1349,8 @@ namespace ShareX.HelpersLib.Localization {
         }
 
         public static string HotkeyType_AnimatedGifTrimmer => ResourceManager.GetString("HotkeyType_AnimatedGifTrimmer", resourceCulture);
+        public static string HotkeyType_ManualScrollingCapture {
+            get { return ResourceManager.GetString("HotkeyType_ManualScrollingCapture", resourceCulture); }
+        }
     }
 }

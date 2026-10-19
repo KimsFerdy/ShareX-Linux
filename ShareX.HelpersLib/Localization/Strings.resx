@@ -549,6 +549,9 @@ Do you still want to run it?</value>
   <data name="GIFQuality_Grayscale" xml:space="preserve">
     <value>Palette quantizer grayscale 256 colors</value>
   </data>
+  <data name="HotkeyType_ManualScrollingCapture" xml:space="preserve">
+    <value>Start/Finish manual scrolling capture</value>
+  </data>
   <data name="HSB_ToString_" xml:space="preserve">
     <value>Hue: {0:0.0}°, Saturation: {1:0.0}%, Brightness: {2:0.0}%</value>
   </data>

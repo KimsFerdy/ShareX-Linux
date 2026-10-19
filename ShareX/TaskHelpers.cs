@@ -143,6 +143,9 @@ namespace ShareX
                 case HotkeyType.ScrollingCapture:
                     await OpenScrollingCapture(safeTaskSettings);
                     break;
+                case HotkeyType.ManualScrollingCapture:
+                    await OpenManualScrollingCapture(safeTaskSettings);
+                    break;
                 case HotkeyType.AutoCapture:
                     OpenAutoCapture(safeTaskSettings);
                     break;
@@ -836,6 +839,14 @@ namespace ShareX
             await ScrollingCaptureWindowIntegration.StartStopAsync(taskSettings.CaptureSettingsReference.ScrollingCaptureOptions,
                 img => UploadManager.RunImageTask(img, taskSettings),
                 () => PlayNotificationSoundAsync(NotificationSound.ActionCompleted, taskSettings));
+        }
+
+        public static async Task OpenManualScrollingCapture(TaskSettings taskSettings = null)
+        {
+            if (taskSettings == null) taskSettings = TaskSettings.GetDefaultTaskSettings();
+
+            await ManualScrollingCaptureIntegration.StartFinishAsync(img => UploadManager.RunImageTask(img, taskSettings),
+                () => PlayNotificationSoundAsync(NotificationSound.Capture, taskSettings));
         }
 
         public static void OpenAutoCapture(TaskSettings taskSettings = null)
@@ -2290,6 +2301,7 @@ namespace ShareX
                 HotkeyType.CustomRegion => LucideIcons.scan_line,
                 HotkeyType.LastRegion => LucideIcons.layers,
                 HotkeyType.ScrollingCapture => LucideIcons.scroll_text,
+                HotkeyType.ManualScrollingCapture => LucideIcons.hand,
                 HotkeyType.AutoCapture => LucideIcons.clock,
                 HotkeyType.StartAutoCapture => LucideIcons.circle_play,
                 HotkeyType.StopAutoCapture => LucideIcons.timer_off,

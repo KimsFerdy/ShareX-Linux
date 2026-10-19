@@ -133,6 +133,7 @@ internal sealed class MainMenuBuilder
             Item(Strings.MainMenuBuilder_ScreenRecordingGif, LucideIcons.film,
                 () => TaskHelpers.StartScreenRecording(ScreenRecordOutput.GIF, ScreenRecordStartMethod.Region)),
             Item(Strings.MainMenuBuilder_ScrollingCapture, LucideIcons.scroll_text, async () => await TaskHelpers.OpenScrollingCapture()),
+            Item(Strings.MainMenuBuilder_ManualScrollingCapture, LucideIcons.hand, async () => await TaskHelpers.OpenManualScrollingCapture()),
             Item(Strings.MainMenuBuilder_AutoCapture, LucideIcons.clock, () => TaskHelpers.OpenAutoCapture()),
             MainMenuEntry.Separator(),
             new MainMenuEntry(Strings.MainMenuBuilder_ShowCursor, LucideIcons.mouse_pointer_2,
