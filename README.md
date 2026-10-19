@@ -11,7 +11,7 @@ ShareX so new features arrive here too. It is developed and tested on Linux Mint
 Download the latest package from [Releases](https://github.com/KimsFerdy/ShareX-Linux/releases), then:
 
 ```sh
-sudo apt install ./sharex_<version>_amd64.deb
+sudo apt install ./sharex_<version>-<revision>_amd64.deb
 ```
 
 The package includes everything ShareX needs, .NET too. Run `sharex` or open ShareX from the application menu.

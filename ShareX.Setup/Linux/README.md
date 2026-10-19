@@ -3,9 +3,9 @@
 `build-packages.sh` publishes ShareX as a self-contained Linux build, so the target system does not need .NET, and
 packages it as:
 
-- `sharex_<version>_<arch>.deb` for Debian, Ubuntu, Linux Mint and other Debian-based distributions. It installs to
+- `sharex_<version>-<revision>_<arch>.deb` for Debian, Ubuntu, Linux Mint and other Debian-based distributions. It installs to
   `/opt/sharex`, adds the `sharex` command, an application menu entry and an icon.
-- `ShareX-<version>-<rid>.tar.gz`, a portable folder for other distributions. Run `ShareX` inside it.
+- `ShareX-<version>-<revision>-<rid>.tar.gz`, a portable folder for other distributions. Run `ShareX` inside it.
 
 ## Building
 
@@ -16,12 +16,14 @@ ShareX.Setup/Linux/build-packages.sh        # x64
 ShareX.Setup/Linux/build-packages.sh arm64  # ARM64
 ```
 
-The packages are written to `ShareX.Setup/Output/`. Set `DOTNET` to use a specific `dotnet` executable.
+The packages are written to `ShareX.Setup/Output/`. Set `DOTNET` to use a specific `dotnet` executable, and
+`PACKAGE_REVISION` to the release number (the `n` in a `v<version>-linux.<n>` tag), so that each release's .deb has a
+higher version than the previous one and installs as an upgrade.
 
 ## Installing
 
 ```sh
-sudo apt install ./ShareX.Setup/Output/sharex_<version>_amd64.deb
+sudo apt install ./ShareX.Setup/Output/sharex_<version>-<revision>_amd64.deb
 ```
 
 `apt` also installs the recommended packages: FFmpeg for screen recording, mpv for the video player and trimmer, and

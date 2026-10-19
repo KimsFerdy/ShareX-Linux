@@ -3,6 +3,9 @@
 #
 # Usage: ShareX.Setup/Linux/build-packages.sh [x64|arm64]
 # Output: ShareX.Setup/Output/
+#
+# PACKAGE_REVISION (default 1) numbers Linux releases of the same ShareX version, matching the v<version>-linux.<n>
+# release tags, so that each release installs as an upgrade of the previous one.
 set -euo pipefail
 
 ARCH="${1:-x64}"
@@ -25,7 +28,9 @@ if [ ! -x "$DOTNET" ]; then
 fi
 
 VERSION="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$REPO_DIR/Directory.Build.props" | head -n 1)"
-echo "Building ShareX $VERSION for $RID"
+REVISION="${PACKAGE_REVISION:-1}"
+PACKAGE_VERSION="$VERSION-$REVISION"
+echo "Building ShareX $PACKAGE_VERSION for $RID"
 
 PUBLISH_DIR="$WORK_DIR/publish"
 "$DOTNET" publish "$REPO_DIR/ShareX/ShareX.csproj" \
@@ -39,11 +44,11 @@ PUBLISH_DIR="$WORK_DIR/publish"
 mkdir -p "$OUTPUT_DIR"
 
 # Portable archive: the published folder with a launcher.
-TAR_ROOT="$WORK_DIR/ShareX-$VERSION-$RID"
+TAR_ROOT="$WORK_DIR/ShareX-$PACKAGE_VERSION-$RID"
 cp -r "$PUBLISH_DIR" "$TAR_ROOT"
 install -m 644 "$REPO_DIR/ShareX.HelpersLib/Resources/ShareX_Logo.png" "$TAR_ROOT/sharex.png"
-TAR_FILE="$OUTPUT_DIR/ShareX-$VERSION-$RID.tar.gz"
-tar -C "$WORK_DIR" -czf "$TAR_FILE" "ShareX-$VERSION-$RID"
+TAR_FILE="$OUTPUT_DIR/ShareX-$PACKAGE_VERSION-$RID.tar.gz"
+tar -C "$WORK_DIR" -czf "$TAR_FILE" "ShareX-$PACKAGE_VERSION-$RID"
 echo "Created $TAR_FILE"
 
 # Debian package.
@@ -59,7 +64,7 @@ install -m 644 "$REPO_DIR/ShareX.HelpersLib/Resources/ShareX_Logo.png" \
 install -m 644 "$SCRIPT_DIR/sharex.desktop" "$DEB_ROOT/usr/share/applications/sharex.desktop"
 
 INSTALLED_SIZE="$(du -sk "$DEB_ROOT" | cut -f1)"
-sed -e "s/@VERSION@/$VERSION/" -e "s/@ARCH@/$DEB_ARCH/" -e "s/@INSTALLED_SIZE@/$INSTALLED_SIZE/" \
+sed -e "s/@VERSION@/$PACKAGE_VERSION/" -e "s/@ARCH@/$DEB_ARCH/" -e "s/@INSTALLED_SIZE@/$INSTALLED_SIZE/" \
     "$SCRIPT_DIR/control" > "$DEB_ROOT/DEBIAN/control"
 install -m 755 "$SCRIPT_DIR/postinst" "$DEB_ROOT/DEBIAN/postinst"
 install -m 755 "$SCRIPT_DIR/postrm" "$DEB_ROOT/DEBIAN/postrm"
@@ -67,6 +72,6 @@ install -m 755 "$SCRIPT_DIR/postrm" "$DEB_ROOT/DEBIAN/postrm"
 # Package files must not be group or world writable, whatever the build user's umask is.
 chmod -R u+rwX,go+rX,go-w "$DEB_ROOT"
 
-DEB_FILE="$OUTPUT_DIR/sharex_${VERSION}_${DEB_ARCH}.deb"
+DEB_FILE="$OUTPUT_DIR/sharex_${PACKAGE_VERSION}_${DEB_ARCH}.deb"
 dpkg-deb --build --root-owner-group "$DEB_ROOT" "$DEB_FILE"
 echo "Created $DEB_FILE"
