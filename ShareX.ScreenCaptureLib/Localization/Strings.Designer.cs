@@ -527,23 +527,32 @@ namespace ShareX.ScreenCaptureLib.Localization {
         public static string FFmpegOptionsWindow_Source_DDA {
             get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_DDA", resourceCulture); }
         }
-        public static string FFmpegOptionsWindow_Source_X11 {
-            get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_X11", resourceCulture); }
+        public static string RegionCaptureWindow_MoveToolbar {
+            get { return ResourceManager.GetString("RegionCaptureWindow_MoveToolbar", resourceCulture); }
         }
-        public static string FFmpegOptionsWindow_Source_SystemAudio {
-            get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_SystemAudio", resourceCulture); }
+        public static string RegionCaptureWindow_EllipseRegion {
+            get { return ResourceManager.GetString("RegionCaptureWindow_EllipseRegion", resourceCulture); }
+        }
+        public static string RegionCaptureWindow_FreehandRegion {
+            get { return ResourceManager.GetString("RegionCaptureWindow_FreehandRegion", resourceCulture); }
         }
         public static string FFmpegOptionsWindow_Source_DefaultMicrophone {
             get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_DefaultMicrophone", resourceCulture); }
         }
-        public static string ManualScrollingCaptureWindow_Title {
-            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_Title", resourceCulture); }
+        public static string FFmpegOptionsWindow_Source_SystemAudio {
+            get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_SystemAudio", resourceCulture); }
         }
-        public static string ManualScrollingCaptureWindow_ScrollDown {
-            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_ScrollDown", resourceCulture); }
+        public static string FFmpegOptionsWindow_Source_X11 {
+            get { return ResourceManager.GetString("FFmpegOptionsWindow_Source_X11", resourceCulture); }
+        }
+        public static string ManualScrollingCaptureWindow_Cancel {
+            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_Cancel", resourceCulture); }
         }
         public static string ManualScrollingCaptureWindow_Captured {
             get { return ResourceManager.GetString("ManualScrollingCaptureWindow_Captured", resourceCulture); }
+        }
+        public static string ManualScrollingCaptureWindow_Finish {
+            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_Finish", resourceCulture); }
         }
         public static string ManualScrollingCaptureWindow_LostTrack {
             get { return ResourceManager.GetString("ManualScrollingCaptureWindow_LostTrack", resourceCulture); }
@@ -551,11 +560,11 @@ namespace ShareX.ScreenCaptureLib.Localization {
         public static string ManualScrollingCaptureWindow_MaxHeight {
             get { return ResourceManager.GetString("ManualScrollingCaptureWindow_MaxHeight", resourceCulture); }
         }
-        public static string ManualScrollingCaptureWindow_Finish {
-            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_Finish", resourceCulture); }
+        public static string ManualScrollingCaptureWindow_ScrollDown {
+            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_ScrollDown", resourceCulture); }
         }
-        public static string ManualScrollingCaptureWindow_Cancel {
-            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_Cancel", resourceCulture); }
+        public static string ManualScrollingCaptureWindow_Title {
+            get { return ResourceManager.GetString("ManualScrollingCaptureWindow_Title", resourceCulture); }
         }
     }
 }

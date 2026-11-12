@@ -46,11 +46,19 @@ namespace ShareX.HelpersLib
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetWindowDisplayAffinity(IntPtr windowHandle, uint affinity);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool AllowSetForegroundWindow(uint dwProcessId);
+
         [DllImport("user32.dll")]
         public static extern bool AnimateWindow(IntPtr hwnd, int time, AnimateWindowFlags flags);
 
         [DllImport("user32.dll")]
         public static extern bool BringWindowToTop(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
 
         [DllImport("user32.dll")]
         public static extern IntPtr CopyIcon(IntPtr hIcon);
@@ -92,7 +100,7 @@ namespace ShareX.HelpersLib
         [DllImport("user32.dll")]
         public static extern bool DrawIconEx(IntPtr hdc, int xLeft, int yTop, IntPtr hIcon, int cxWidth, int cyHeight, int istepIfAniCur, IntPtr hbrFlickerFreeDraw, int diFlags);
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
         [DllImport("user32.dll")]
@@ -313,6 +321,24 @@ namespace ShareX.HelpersLib
         [DllImport("user32.dll")]
         public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool OpenClipboard(IntPtr hWndNewOwner);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CloseClipboard();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool EmptyClipboard();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern uint RegisterClipboardFormat(string lpszFormat);
+
         #endregion user32.dll
 
         #region kernel32.dll
@@ -320,6 +346,10 @@ namespace ShareX.HelpersLib
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes,
             bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetNamedPipeServerProcessId(SafeHandle pipe, out uint serverProcessId);
 
         [DllImport("kernel32.dll")]
         public static extern int ResumeThread(IntPtr hThread);
@@ -339,6 +369,19 @@ namespace ShareX.HelpersLib
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         public static extern ushort GlobalDeleteAtom(ushort nAtom);
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GlobalLock(IntPtr hMem);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GlobalUnlock(IntPtr hMem);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GlobalFree(IntPtr hMem);
+
         [DllImport("kernel32.dll")]
         public static extern IntPtr GetModuleHandle(string lpModuleName);
 
@@ -353,7 +396,7 @@ namespace ShareX.HelpersLib
 
         #region gdi32.dll
 
-        [DllImport("gdi32.dll")]
+        [DllImport("gdi32.dll", SetLastError = true)]
         public static extern bool BitBlt(IntPtr hdc, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, NativeRasterOperation dwRop);
 
         [DllImport("gdi32.dll")]
@@ -380,7 +423,7 @@ namespace ShareX.HelpersLib
         [DllImport("gdi32.dll")]
         public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
 
-        [DllImport("gdi32.dll")]
+        [DllImport("gdi32.dll", SetLastError = true)]
         public static extern IntPtr CreateDIBSection(IntPtr hdc, [In] ref BITMAPINFOHEADER pbmi, uint pila, out IntPtr ppvBits, IntPtr hSection, uint dwOffset);
 
         [DllImport("gdi32.dll")]

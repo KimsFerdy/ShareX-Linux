@@ -36,6 +36,7 @@ public sealed class ScreenRecorder : IDisposable, IAsyncDisposable
     public CameraCaptureInfo? Camera => null;
 
     public event Action<string>? Diagnostic { add { } remove { } }
+    public event Action<int>? EncodingProgressChanged { add { } remove { } }
 
     public bool IsRecording => false;
     public bool IsPaused => false;
@@ -52,6 +53,7 @@ public sealed class ScreenRecorder : IDisposable, IAsyncDisposable
     public void Resume() { }
     public void Resume(System.Drawing.Rectangle region) { }
     public void RequestStop() { }
+    public void RequestAbort() { }
     public Task<RecordingResult> StopAsync() => Completion;
     public void Dispose() { }
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

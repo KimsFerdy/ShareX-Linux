@@ -276,6 +276,16 @@ namespace ShareX.ScreenCaptureLib
                 return currentImage.Copy();
             }
 
+            // Rows of both images are addressed with the result's stride below. Each capture is clipped to the current screen, so
+            // a display that changes size mid-capture gives a frame that cannot be stitched on, and comparing it would read past
+            // its pixel buffer. It is treated like a frame with no match: the capture ends with what it has.
+            if (currentImage.Width != result.Width || currentImage.Height > result.Height)
+            {
+                status = ScrollingCaptureStatus.Failed;
+
+                return null;
+            }
+
             int matchCount = 0;
             int matchIndex = 0;
             int matchLimit = currentImage.Height / 2;
@@ -368,10 +378,9 @@ namespace ShareX.ScreenCaptureLib
                     using (SKCanvas g = new(newResult))
                     using (SKPaint paint = new() { BlendMode = SKBlendMode.Src })
                     {
-
-                        g.DrawImage(result, SKRect.Create(0, 0, result.Width, result.Height - ignoreBottomOffset),
+                        g.DrawBitmap(result, SKRect.Create(0, 0, result.Width, result.Height - ignoreBottomOffset),
                             SKRect.Create(0, 0, result.Width, result.Height - ignoreBottomOffset), paint);
-                        g.DrawImage(currentImage, SKRect.Create(0, matchIndex + 1, currentImage.Width, matchHeight),
+                        g.DrawBitmap(currentImage, SKRect.Create(0, matchIndex + 1, currentImage.Width, matchHeight),
                             SKRect.Create(0, result.Height - ignoreBottomOffset, currentImage.Width, matchHeight), paint);
                     }
 

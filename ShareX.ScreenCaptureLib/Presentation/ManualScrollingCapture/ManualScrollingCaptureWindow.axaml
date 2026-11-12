@@ -3,7 +3,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:localization="using:ShareX.ScreenCaptureLib.Localization"
-        xmlns:theming="using:ShareX.AvaloniaUI.Theming"
+        xmlns:icons="using:ShareX.Icons"
+        xmlns:controls="using:ShareX.AvaloniaUI.Controls"
         mc:Ignorable="d"
         d:DesignWidth="540"
         d:DesignHeight="42"
@@ -39,9 +40,9 @@
         <Style Selector="Button.toolbar-action.right-rounded /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="CornerRadius" Value="0,7,7,0"/>
         </Style>
-        <Style Selector="TextBlock.action-icon">
+        <Style Selector="controls|IconPresenter.action-icon">
             <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Foreground" Value="{DynamicResource ShareX.Brush.Accent}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ShareX.Brush.Accent.Icon}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </Window.Styles>
@@ -67,13 +68,13 @@
             </Border>
             <Button x:Name="FinishButton" Grid.Column="1" Classes="toolbar-action">
                 <StackPanel Orientation="Horizontal" Spacing="7">
-                    <TextBlock Classes="icon action-icon" Text="{x:Static theming:LucideIcons.check}"/>
+                    <controls:IconPresenter Classes="action-icon" Icon="{x:Static icons:AppIcons.Check}"/>
                     <TextBlock Text="{x:Static localization:Strings.ManualScrollingCaptureWindow_Finish}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
             <Button x:Name="CancelButton" Grid.Column="2" Classes="toolbar-action right-rounded">
                 <StackPanel Orientation="Horizontal" Spacing="7">
-                    <TextBlock Classes="icon action-icon" Text="{x:Static theming:LucideIcons.x}"/>
+                    <controls:IconPresenter Classes="action-icon" Icon="{x:Static icons:AppIcons.Close}"/>
                     <TextBlock Text="{x:Static localization:Strings.ManualScrollingCaptureWindow_Cancel}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>

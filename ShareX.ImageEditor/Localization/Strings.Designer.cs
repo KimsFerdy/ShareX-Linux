@@ -315,6 +315,16 @@ namespace ShareX.ImageEditor.Localization {
                 return ResourceManager.GetString("AnnotationToolbar_Fontfamily", resourceCulture);
             }
         }
+        public static string FontFamilyPickerDropdown_SearchfontsEllipsis {
+            get {
+                return ResourceManager.GetString("FontFamilyPickerDropdown_SearchfontsEllipsis", resourceCulture);
+            }
+        }
+        public static string FontFamilyPickerDropdown_Nomatchingfonts {
+            get {
+                return ResourceManager.GetString("FontFamilyPickerDropdown_Nomatchingfonts", resourceCulture);
+            }
+        }
         public static string AnnotationToolbar_Fontsize {
             get {
                 return ResourceManager.GetString("AnnotationToolbar_Fontsize", resourceCulture);
@@ -418,6 +428,16 @@ namespace ShareX.ImageEditor.Localization {
         public static string AnnotationToolbar_ToggleshadowShadowoptionsRightclick {
             get {
                 return ResourceManager.GetString("AnnotationToolbar_ToggleshadowShadowoptionsRightclick", resourceCulture);
+            }
+        }
+        public static string AnnotationToolbar_Roundedcorners {
+            get {
+                return ResourceManager.GetString("AnnotationToolbar_Roundedcorners", resourceCulture);
+            }
+        }
+        public static string AnnotationToolbar_Freehandarrow {
+            get {
+                return ResourceManager.GetString("AnnotationToolbar_Freehandarrow", resourceCulture);
             }
         }
         public static string AnnotationToolbar_Toggletail {
@@ -753,6 +773,11 @@ namespace ShareX.ImageEditor.Localization {
         public static string ToolbarCustomizationItemViewModel_Image {
             get {
                 return ResourceManager.GetString("ToolbarCustomizationItemViewModel_Image", resourceCulture);
+            }
+        }
+        public static string ToolbarCustomizationItemViewModel_Clone {
+            get {
+                return ResourceManager.GetString("ToolbarCustomizationItemViewModel_Clone", resourceCulture);
             }
         }
         public static string ToolbarCustomizationItemViewModel_Emoji {
@@ -1248,6 +1273,26 @@ namespace ShareX.ImageEditor.Localization {
         public static string EditorView_AchievementUnlocked {
             get {
                 return ResourceManager.GetString("EditorView_AchievementUnlocked", resourceCulture);
+            }
+        }
+        public static string ToolbarCustomizationItemViewModel_CanvasSize {
+            get {
+                return ResourceManager.GetString("ToolbarCustomizationItemViewModel_CanvasSize", resourceCulture);
+            }
+        }
+        public static string EditorView_CanvasSizeApply {
+            get {
+                return ResourceManager.GetString("EditorView_CanvasSizeApply", resourceCulture);
+            }
+        }
+        public static string EditorView_CanvasSizeCancel {
+            get {
+                return ResourceManager.GetString("EditorView_CanvasSizeCancel", resourceCulture);
+            }
+        }
+        public static string EditorView_CanvasSizeFillColor {
+            get {
+                return ResourceManager.GetString("EditorView_CanvasSizeFillColor", resourceCulture);
             }
         }
         public static string EditorView_Crop {
@@ -2433,6 +2478,26 @@ namespace ShareX.ImageEditor.Localization {
         public static string EffectBrowserPanel_Effect_wave_distortion {
             get {
                 return ResourceManager.GetString("EffectBrowserPanel_Effect_wave_distortion", resourceCulture);
+            }
+        }
+        public static string ToolbarCustomizationDialogView_Primary {
+            get {
+                return ResourceManager.GetString("ToolbarCustomizationDialogView_Primary", resourceCulture);
+            }
+        }
+        public static string ToolbarCustomizationDialogView_Secondary {
+            get {
+                return ResourceManager.GetString("ToolbarCustomizationDialogView_Secondary", resourceCulture);
+            }
+        }
+        public static string EditorView_NewFromScreenshotFullScreen {
+            get {
+                return ResourceManager.GetString("EditorView_NewFromScreenshotFullScreen", resourceCulture);
+            }
+        }
+        public static string EditorView_NewFromScreenshotRegionEllipsis {
+            get {
+                return ResourceManager.GetString("EditorView_NewFromScreenshotRegionEllipsis", resourceCulture);
             }
         }
     }
